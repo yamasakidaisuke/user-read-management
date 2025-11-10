@@ -2,7 +2,7 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.0
+ * Version: 1.1
  * Author: Daisuke Yamasaki
  */
 
@@ -95,10 +95,70 @@ function update_read_status() {
 }
 add_action( 'wp_ajax_update_read_status', 'update_read_status' );
 
+// CSVエクスポート機能（管理者のみ）
+function export_read_status_csv() {
+  // 管理者チェック
+  if ( ! current_user_can( 'administrator' ) ) {
+      wp_send_json_error( array( 'message' => '権限がありません' ) );
+      wp_die();
+  }
+
+  global $exclude_user_ids, $exclude_post_ids;
+
+  // ユーザーの取得
+  $users = get_users( array( 'fields' => array( 'ID', 'display_name' ) ) );
+
+  // 投稿の取得
+  $args = array(
+      'post_type' => 'post',
+      'posts_per_page' => -1,
+      'category_name' => 'manuals,medical-information',
+  );
+  $posts = get_posts( $args );
+
+  // CSVデータの生成
+  $csv_data = array();
+
+  // ヘッダー行
+  $header = array( '投稿タイトル' );
+  foreach ( $users as $user ) {
+      $header[] = $user->display_name;
+  }
+  $csv_data[] = $header;
+
+  // データ行
+  foreach ( $posts as $post ) {
+      // 除外する記事のスキップ
+      if ( in_array( $post->ID, $exclude_post_ids ) ) {
+          continue;
+      }
+
+      $row = array( get_the_title( $post->ID ) );
+      
+      foreach ( $users as $user ) {
+          $status = get_user_meta( $user->ID, 'read_status_' . $post->ID, true );
+          $row[] = ( $status === 'read' ) ? '済' : '未';
+      }
+      
+      $csv_data[] = $row;
+  }
+
+  // タイムスタンプ付きファイル名
+  $timestamp = date( 'YmdHis' );
+  $filename = $timestamp . '_end-of-reading-management.csv';
+
+  // CSVレスポンスを返す
+  wp_send_json_success( array(
+      'filename' => $filename,
+      'data' => $csv_data
+  ) );
+  wp_die();
+}
+add_action( 'wp_ajax_export_read_status_csv', 'export_read_status_csv' );
 
 
 function enqueue_read_status_script() {
-  wp_register_script( 'read-status-script', plugins_url( '/read-status.js', __FILE__ ), array('jquery'), '1.1', true );
+  wp_register_script( 'read-status-script', plugins_url( '/read-status.js', __FILE__ ), array('jquery'), '1.2', true );
 
   $data_array = array(
       'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
@@ -221,6 +281,13 @@ function display_read_status_overview() {
     // 表の終了
     echo '</table>';
     echo '</div>';
+
+    // 管理者のみCSVエクスポートボタンを表示
+    if (current_user_can('administrator')) {
+        echo '<div style="margin-top: 20px;">';
+        echo '<button id="csv-export-button" class="button button-primary" style="padding: 10px 20px; cursor: pointer;">CSVエクスポート</button>';
+        echo '</div>';
+    }
 
     return ob_get_clean();
 }

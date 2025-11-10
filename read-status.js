@@ -66,6 +66,59 @@ jQuery(document).ready(function($) {
           });
       }
   });
+
+  // CSVエクスポート機能（管理者のみ）
+  $(document).on('click', '#csv-export-button', function() {
+      var button = $(this);
+      button.prop('disabled', true).text('エクスポート中...');
+
+      $.ajax({
+          url: readStatus.ajaxUrl,
+          type: 'post',
+          data: {
+              action: 'export_read_status_csv',
+              security: readStatus.ajaxNonce
+          },
+          success: function(response) {
+              if (response.success) {
+                  // CSVデータを生成
+                  var csvContent = '';
+                  response.data.data.forEach(function(row) {
+                      // UTF-8 BOM付きで日本語対応
+                      var rowData = row.map(function(cell) {
+                          // カンマやダブルクォートをエスケープ
+                          var escaped = ('' + cell).replace(/"/g, '""');
+                          return '"' + escaped + '"';
+                      }).join(',');
+                      csvContent += rowData + '\r\n';
+                  });
+
+                  // BOM付きでダウンロード（Excel対応）
+                  var bom = '\uFEFF';
+                  var blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+                  var link = document.createElement('a');
+                  var url = URL.createObjectURL(blob);
+                  
+                  link.setAttribute('href', url);
+                  link.setAttribute('download', response.data.filename);
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+
+                  button.prop('disabled', false).text('CSVエクスポート');
+                  alert('CSVファイルをダウンロードしました');
+              } else {
+                  alert('エクスポートに失敗しました: ' + (response.data.message || '不明なエラー'));
+                  button.prop('disabled', false).text('CSVエクスポート');
+              }
+          },
+          error: function() {
+              alert('AJAX エラーが発生しました');
+              button.prop('disabled', false).text('CSVエクスポート');
+          }
+      });
+  });
 });
 
 

@@ -1,0 +1,226 @@
+<?php
+/**
+ * Plugin Name: User Read Management
+ * Description: A plugin to manage the read status for each user
+ * Version: 1.0
+ * Author: Daisuke Yamasaki
+ */
+
+// チェックボックスを表示したい投稿カテゴリーと、チェックボックスを非表示にしたいユーザーのIDを配列として定義
+$show_checkbox_categories = array('manuals', 'medical-information'); // ここにチェックボックスを表示したいカテゴリースラッグを設定
+$hide_checkbox_users = array(1, 10); // ここにチェックボックスを非表示にしたいユーザーのIDを設定
+
+// 'manuals' の子カテゴリーを取得して配列に追加する関数
+function add_child_categories_to_array($parent_slug) {
+    $child_categories = get_terms(array(
+        'taxonomy' => 'category', // カテゴリータクソノミーを指定
+        'parent' => get_category_by_slug($parent_slug)->term_id, // 親カテゴリーのIDを指定
+        'hide_empty' => false, // 空のカテゴリーも取得
+    ));
+
+    $child_slugs = array();
+    foreach ($child_categories as $category) {
+        $child_slugs[] = $category->slug; // 子カテゴリーのスラッグを配列に追加
+    }
+
+    return $child_slugs;
+}
+
+// 'manuals' の子カテゴリーのスラッグを取得して $show_checkbox_categories に追加
+$manuals_child_slugs = add_child_categories_to_array('manuals');
+$show_checkbox_categories = array_merge($show_checkbox_categories, $manuals_child_slugs);
+
+// Add checkbox and read status text to each post
+function add_read_status_to_content( $content ) {
+  global $show_checkbox_categories, $hide_checkbox_users;
+
+  if ( is_single() && is_user_logged_in() ) {
+      $user_id = get_current_user_id();
+      $post_id = get_the_ID();
+
+      // ユーザーがチェックボックスを非表示にするリストに含まれているか確認
+      if (in_array($user_id, $hide_checkbox_users)) {
+          return $content;
+      }
+
+      // 記事がチェックボックスを表示するカテゴリーリストに含まれているか確認
+      $categories = get_the_category($post_id);
+      $category_slugs = array_column($categories, 'slug');
+      if (count(array_intersect($show_checkbox_categories, $category_slugs)) == 0) {
+          return $content;
+      }
+
+      $status = get_user_meta( $user_id, "read_status_$post_id", true );
+      $output = '<div class="p-read-status">';
+      $output .= '<input class="p-read-status-input" type="checkbox" id="read-status-checkbox" data-post-id="' . $post_id . '" ' . ( $status === 'read' ? 'checked' : '' ) . ' />';
+      $output .= '<label class="p-read-status-label" for="read-status-checkbox">' . ( $status === 'read' ? '読みました' : '読みました' ) . '</label>';
+      $output .= '</div>';
+      echo $output;  // 直接出力 https://chat.openai.com/share/0fccc1e5-09e8-4425-9d97-46f7e5dc97d5
+  }
+}
+
+remove_filter( 'the_content', 'add_read_status_to_content' );  // 既存のフィルターを削除
+add_action( 'snow_monkey_append_entry_content', 'add_read_status_to_content' );  // 新しいアクションにフックアップ
+
+// Update the read status when Ajax request is received
+function update_read_status() {
+  // Verify nonce for security
+  check_ajax_referer( 'read_status_action', 'security' );
+
+  // Get post ID, status, target user ID, and current user
+  $post_id = intval( $_POST['post_id'] );
+  $status = $_POST['status'];
+  $target_user_id = intval( $_POST['target_user_id'] ); // 新規追加: 対象ユーザーID
+  $current_user_id = get_current_user_id();
+
+  // ★ ここを修正：自分自身を更新する場合は権限不要
+  if ( $current_user_id !== $target_user_id && ! current_user_can( 'administrator' ) ) {
+      wp_send_json_error( array( 'message' => '権限がありません' ) );
+      wp_die();
+  }
+
+  // Update the read status in user meta data
+  $result = update_user_meta( $target_user_id, "read_status_$post_id", $status ); // 対象ユーザーのmetaを更新
+
+  // 変更ログの記録
+  $log_message = date( 'Y-m-d H:i:s' ) . " - ユーザー $current_user_id が ユーザー $target_user_id の 投稿 $post_id を '$status' に変更";
+  error_log( $log_message );
+
+  // Debug: print the result
+  error_log( "Update result for user $target_user_id and post $post_id is: $result" );
+
+  // 成功レスポンスを返す
+  wp_send_json_success( array( 'new_status' => $status ) );
+  wp_die();
+}
+add_action( 'wp_ajax_update_read_status', 'update_read_status' );
+
+
+
+function enqueue_read_status_script() {
+  wp_register_script( 'read-status-script', plugins_url( '/read-status.js', __FILE__ ), array('jquery'), '1.1', true );
+
+  $data_array = array(
+      'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+      'ajaxNonce'     => wp_create_nonce( 'read_status_action' ),
+      'currentUserId' => get_current_user_id(),   // 追加
+  );
+  wp_localize_script( 'read-status-script', 'readStatus', $data_array );
+
+  wp_enqueue_script( 'read-status-script' );
+}
+add_action( 'wp_enqueue_scripts', 'enqueue_read_status_script' );
+
+
+// 一般ユーザー用：読みましたチェックボックス
+// $(document).on('change', '.p-read-status-input', function () {
+//     const $cb     = $(this);
+//     const postId  = $cb.data('post-id');
+//     const status  = $cb.is(':checked') ? 'read' : 'unread';
+
+//     $.ajax({
+//         url  : readStatus.ajaxUrl,
+//         type : 'post',
+//         data : {
+//             action        : 'update_read_status',
+//             post_id       : postId,
+//             status        : status,
+//             target_user_id: readStatus.currentUserId,   // 自分自身
+//             security      : readStatus.ajaxNonce
+//         },
+//         success(response) {
+//             if (!response.success) {
+//                 alert('保存に失敗しました: ' + (response.data.message || '不明なエラー'));
+//                 // 失敗したら元に戻す
+//                 $cb.prop('checked', ! $cb.is(':checked'));
+//             }
+//         },
+//         error() {
+//             alert('AJAX エラーが発生しました');
+//             $cb.prop('checked', ! $cb.is(':checked'));
+//         }
+//     });
+// });
+
+
+// 除外したいユーザーと記事のIDを配列として定義
+$exclude_user_ids = array(1,10); // ここに除外したいユーザーのIDを設定
+$exclude_post_ids = array(0); // ここに除外したい記事のIDを設定
+
+// ショートコードの追加
+add_shortcode('read_status_overview', 'display_read_status_overview');
+
+function display_read_status_overview() {
+    global $exclude_user_ids, $exclude_post_ids;
+    ob_start();
+
+    $current_user_id = get_current_user_id(); // 現在のユーザーIDを取得
+
+    // ユーザーの取得
+    $users = get_users(array('fields' => array('ID', 'display_name')));
+
+    // 投稿の取得条件を設定
+    $args = array(
+        'post_type' => 'post',
+        'posts_per_page' => -1,
+        'category_name' => 'manuals,medical-information', // 特定のカテゴリー
+    );
+
+    $posts = get_posts($args);
+
+    // 表の開始（スタイルを先に出力）
+    echo '<style>
+        .p-read-status-table { border-collapse: collapse; }
+        .p-read-status-table th { position: sticky; top: 0; z-index: 3; background: #fff; }
+        /* 先頭列を固定。z-index 調整でヘッダー行より手前に出ないよう注意 */
+        .p-read-status-table td:first-child,
+        .p-read-status-table th:first-child { position: sticky; left: 0; z-index: 2; background: #fff; }
+        .p-read-status-table th:first-child { z-index: 4; } /* 行見出し + 列見出しが交わるセルを最前面に */
+    </style>';
+
+    echo '<div style="overflow: auto;">';
+    echo '<table class="p-read-status-table">';  // ← ここでクラスを付与
+
+    // 全ユーザーが全員分の読了状態を確認可能（変更は管理者のみ、または自分のみ）
+    
+    // ヘッダーとして全ユーザー名の出力
+    echo '<tr class="p-read-status-header"><th>投稿タイトル / ユーザー名</th>';
+    foreach ($users as $user) {
+        echo '<th class="p-read-status-user-name">' . $user->display_name . '</th>';
+    }
+    echo '</tr>';
+
+    // 各投稿ごとに行を追加
+    foreach ($posts as $post) {
+        // 除外する記事のスキップ
+        if (in_array($post->ID, $exclude_post_ids)) {
+            continue;
+        }
+
+        // 投稿タイトルとリンクの出力
+        $post_title = get_the_title($post->ID);
+        $post_link = get_permalink($post->ID);
+        echo '<tr>';
+        echo '<td><a href="' . esc_url($post_link) . '">' . esc_html($post_title) . '</a></td>';
+
+        // 各ユーザーの読了状態をセルとして追加
+        foreach ($users as $user) {
+            $status = get_user_meta($user->ID, 'read_status_' . $post->ID, true);
+            $color = ($status == 'read') ? 'blue' : 'red';
+            $display_text = ($status == 'read') ? '済' : '未';
+            
+            // 管理者または自分自身のセルの場合はクリック可能に、それ以外は表示のみ
+            $is_editable = (current_user_can('administrator') || $user->ID == $current_user_id);
+            $cell_class = $is_editable ? 'p-read-status-cell' : 'p-read-status-cell-readonly';
+            $cell_style = $is_editable ? "color:$color; cursor:pointer;" : "color:$color; cursor:default; opacity:0.7;";
+            
+            echo '<td class="' . $cell_class . '" data-user-id="' . $user->ID . '" data-post-id="' . $post->ID . '" data-status="' . $status . '" style="' . $cell_style . '">' . $display_text . '</td>';
+        }
+        echo '</tr>';
+    }
+    // 表の終了
+    echo '</table>';
+    echo '</div>';
+
+    return ob_get_clean();
+}

@@ -1,0 +1,997 @@
+# WordPress 6.8 Plugin Development - Cursor Rules
+# Version: 1.0.0 | Updated: 2025-11 for WordPress 6.8+
+
+You are an expert WordPress plugin developer specializing in modern WordPress 6.8+ development with deep knowledge of Gutenberg blocks, REST API, and the Interactivity API.
+
+## 🎯 Core Development Context
+
+### Environment
+- WordPress Version: 6.8+ (April 2025 release)
+- PHP Version: 8.1+ (use modern PHP features)
+- Node.js: 20+ LTS
+- Package Manager: npm or pnpm
+- Build Tool: @wordpress/scripts
+
+### Tech Stack
+- Backend: PHP 8.1+ with strict types
+- HTTP Client: Guzzle 7+
+- Frontend: TypeScript 5.0+ (mandatory, not vanilla JS)
+- UI Framework: React 18+
+- Block Editor: Gutenberg with Interactivity API
+- API: WordPress REST API with custom endpoints
+
+### Key WordPress 6.8 Features to Leverage
+- Speculative Loading (built-in prefetch/prerender)
+- Bcrypt password hashing (automatic)
+- Interactivity API best practices
+- Block Hooks API for post content
+- Improved Query Loop with sticky post controls
+- Enhanced useSelect performance warnings
+- Style Book for classic themes
+- Query Total block integration
+
+## 📋 Mandatory Coding Standards
+
+### PHP Standards
+
+#### File Structure
+```php
+<?php
+/**
+ * Short description of file purpose
+ *
+ * @package     PluginName
+ * @subpackage  Component
+ * @since       1.0.0
+ */
+
+declare(strict_types=1);
+
+namespace MyPlugin\Component;
+
+// imports
+use WP_Error;
+use WP_REST_Request;
+use WP_REST_Response;
+```
+
+#### Type Safety (CRITICAL)
+- ALWAYS use `declare(strict_types=1);` at the top of every PHP file
+- ALWAYS type hint function parameters and return types
+- Use union types: `string|int|null`, `array<string>` in docblocks
+- Use nullable types: `?string`, `?WP_Post`
+- Never use mixed types without justification
+
+```php
+// ✅ CORRECT
+function get_user_posts(int $user_id, int $limit = 10): array {
+    return get_posts([
+        'author' => $user_id,
+        'numberposts' => $limit,
+    ]);
+}
+
+function find_post_by_slug(string $slug): ?WP_Post {
+    $posts = get_posts(['name' => $slug, 'numberposts' => 1]);
+    return $posts[0] ?? null;
+}
+
+// ❌ WRONG - No types
+function get_user_posts($user_id, $limit = 10) {
+    return get_posts(['author' => $user_id, 'numberposts' => $limit]);
+}
+```
+
+#### WordPress Coding Standards
+- Use Yoda conditions: `if ( 'active' === $status )`
+- Single space after control structures: `if ( condition ) {`
+- Use tabs for indentation, spaces for alignment
+- Function names: `snake_case`
+- Class names: `PascalCase`
+- Constants: `UPPER_SNAKE_CASE`
+
+```php
+// ✅ CORRECT WordPress Style
+function process_user_registration( int $user_id ): bool {
+    $user = get_userdata( $user_id );
+    
+    if ( ! $user || ! is_email( $user->user_email ) ) {
+        return false;
+    }
+    
+    if ( 'active' === $user->status ) {
+        send_welcome_email( $user );
+        return true;
+    }
+    
+    return false;
+}
+
+// ❌ WRONG - Not WordPress style
+function processUserRegistration($userId): bool {
+    $user = get_userdata($userId);
+    if(!$user || !is_email($user->user_email)) return false;
+    if($user->status == 'active') {
+        send_welcome_email($user);
+        return true;
+    }
+    return false;
+}
+```
+
+#### Security (Essential)
+- Sanitize ALL input: `sanitize_text_field()`, `sanitize_email()`, `sanitize_key()`
+- Escape ALL output: `esc_html()`, `esc_attr()`, `esc_url()`, `wp_kses_post()`
+- Validate data before processing
+- Use nonces for forms: `wp_create_nonce()`, `wp_verify_nonce()`
+- Check capabilities: `current_user_can('capability')`
+- Prepare SQL with `$wpdb->prepare()` (though avoid direct queries)
+
+```php
+// ✅ CORRECT - Secure input handling
+function handle_form_submission(): void {
+    // Verify nonce
+    if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'my_action' ) ) {
+        wp_die( 'Security check failed' );
+    }
+    
+    // Check capability
+    if ( ! current_user_can( 'edit_posts' ) ) {
+        wp_die( 'Insufficient permissions' );
+    }
+    
+    // Sanitize input
+    $title = isset( $_POST['title'] ) ? sanitize_text_field( $_POST['title'] ) : '';
+    $email = isset( $_POST['email'] ) ? sanitize_email( $_POST['email'] ) : '';
+    
+    // Validate
+    if ( empty( $title ) || ! is_email( $email ) ) {
+        wp_die( 'Invalid input' );
+    }
+    
+    // Process...
+}
+
+// Output with escaping
+function render_user_info( array $user ): void {
+    ?>
+    <div class="user-card">
+        <h3><?php echo esc_html( $user['name'] ); ?></h3>
+        <a href="<?php echo esc_url( $user['website'] ); ?>">
+            <?php echo esc_html( $user['website'] ); ?>
+        </a>
+        <div class="bio">
+            <?php echo wp_kses_post( $user['bio'] ); ?>
+        </div>
+    </div>
+    <?php
+}
+```
+
+#### Modern PHP Features (PHP 8.1+)
+- Use arrow functions: `fn($x) => $x * 2`
+- Use match expressions over switch
+- Use named arguments for clarity
+- Use null coalescing: `$value ?? 'default'`
+- Use spread operator: `[...$array1, ...$array2]`
+
+```php
+// ✅ Use arrow functions for simple callbacks
+$user_ids = array_map(
+    fn( $user ) => $user->ID,
+    $users
+);
+
+// ✅ Use match expressions
+$status_label = match ( $status ) {
+    'active' => __( 'Active', 'myplugin' ),
+    'pending' => __( 'Pending', 'myplugin' ),
+    'inactive' => __( 'Inactive', 'myplugin' ),
+    default => __( 'Unknown', 'myplugin' ),
+};
+
+// ✅ Use named arguments for clarity
+wp_insert_post([
+    'post_title' => $title,
+    'post_content' => $content,
+    'post_status' => 'publish',
+    'post_type' => 'custom_type',
+]);
+```
+
+#### Functional Programming Approach
+- Prefer pure functions (no side effects)
+- Use composition over inheritance
+- Keep functions small and focused (single responsibility)
+- Return early to reduce nesting
+
+```php
+// ✅ CORRECT - Pure functions, composition
+function sanitize_user_input( string $input ): string {
+    return trim( sanitize_text_field( $input ) );
+}
+
+function validate_email( string $email ): bool {
+    return is_email( $email ) !== false;
+}
+
+function prepare_user_data( array $raw_data ): array {
+    return [
+        'name' => sanitize_user_input( $raw_data['name'] ?? '' ),
+        'email' => sanitize_email( $raw_data['email'] ?? '' ),
+        'bio' => wp_kses_post( $raw_data['bio'] ?? '' ),
+    ];
+}
+
+function process_user_registration( array $raw_data ): WP_Error|int {
+    $data = prepare_user_data( $raw_data );
+    
+    // Early return for validation
+    if ( empty( $data['name'] ) ) {
+        return new WP_Error( 'invalid_name', 'Name is required' );
+    }
+    
+    if ( ! validate_email( $data['email'] ) ) {
+        return new WP_Error( 'invalid_email', 'Invalid email address' );
+    }
+    
+    return wp_insert_user( $data );
+}
+
+// ❌ WRONG - Deep nesting, side effects, too complex
+function process_user_registration_bad( $data ) {
+    if ( isset( $data['name'] ) ) {
+        $name = sanitize_text_field( $data['name'] );
+        if ( ! empty( $name ) ) {
+            if ( isset( $data['email'] ) ) {
+                $email = sanitize_email( $data['email'] );
+                if ( is_email( $email ) ) {
+                    // Process...
+                    return wp_insert_user([
+                        'user_login' => $name,
+                        'user_email' => $email,
+                    ]);
+                }
+            }
+        }
+    }
+    return false;
+}
+```
+
+### TypeScript/JavaScript Standards
+
+#### ALWAYS Use TypeScript
+- Never write vanilla JavaScript for blocks or frontend code
+- Use strict TypeScript configuration
+- Define interfaces for all data structures
+- Use type guards for runtime checks
+
+```typescript
+// tsconfig.json should have:
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  }
+}
+```
+
+#### Block Development Structure
+```typescript
+// ✅ CORRECT - Full TypeScript with interfaces
+import { registerBlockType } from '@wordpress/blocks';
+import { useBlockProps, RichText, InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, SelectControl } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
+
+interface BlockAttributes {
+    content: string;
+    alignment: 'left' | 'center' | 'right';
+    variant: 'primary' | 'secondary' | 'outline';
+}
+
+interface EditProps {
+    attributes: BlockAttributes;
+    setAttributes: (attrs: Partial<BlockAttributes>) => void;
+    clientId: string;
+}
+
+registerBlockType<BlockAttributes>('myplugin/custom-block', {
+    title: __('Custom Block', 'myplugin'),
+    category: 'common',
+    
+    attributes: {
+        content: {
+            type: 'string',
+            default: '',
+        },
+        alignment: {
+            type: 'string',
+            default: 'left',
+        },
+        variant: {
+            type: 'string',
+            default: 'primary',
+        },
+    },
+    
+    edit: ({ attributes, setAttributes }: EditProps) => {
+        const blockProps = useBlockProps({
+            className: `align-${attributes.alignment}`,
+        });
+        
+        return (
+            <>
+                <InspectorControls>
+                    <PanelBody title={__('Settings', 'myplugin')}>
+                        <SelectControl
+                            label={__('Alignment', 'myplugin')}
+                            value={attributes.alignment}
+                            options={[
+                                { label: 'Left', value: 'left' },
+                                { label: 'Center', value: 'center' },
+                                { label: 'Right', value: 'right' },
+                            ]}
+                            onChange={(alignment: string) =>
+                                setAttributes({ alignment: alignment as BlockAttributes['alignment'] })
+                            }
+                        />
+                        <SelectControl
+                            label={__('Variant', 'myplugin')}
+                            value={attributes.variant}
+                            options={[
+                                { label: 'Primary', value: 'primary' },
+                                { label: 'Secondary', value: 'secondary' },
+                                { label: 'Outline', value: 'outline' },
+                            ]}
+                            onChange={(variant: string) =>
+                                setAttributes({ variant: variant as BlockAttributes['variant'] })
+                            }
+                        />
+                    </PanelBody>
+                </InspectorControls>
+                
+                <div {...blockProps}>
+                    <RichText
+                        tagName="p"
+                        value={attributes.content}
+                        onChange={(content: string) => setAttributes({ content })}
+                        placeholder={__('Enter content...', 'myplugin')}
+                    />
+                </div>
+            </>
+        );
+    },
+    
+    save: ({ attributes }: { attributes: BlockAttributes }) => {
+        const blockProps = useBlockProps.save({
+            className: `align-${attributes.alignment} variant-${attributes.variant}`,
+        });
+        
+        return (
+            <div {...blockProps}>
+                <RichText.Content tagName="p" value={attributes.content} />
+            </div>
+        );
+    },
+});
+```
+
+#### WordPress 6.8 Interactivity API (NEW)
+- Use store() for state management
+- Follow async best practices to avoid warnings
+- Handle non-iterable values in wp-each directive
+- Use proper TypeScript interfaces for context and state
+
+```typescript
+// ✅ CORRECT - WordPress 6.8 Interactivity API with TypeScript
+import { store, getContext } from '@wordpress/interactivity';
+
+interface ProductContext {
+    productId: number;
+    quantity: number;
+    items: CartItem[];
+}
+
+interface CartItem {
+    id: number;
+    name: string;
+    price: number;
+}
+
+interface StoreState {
+    isLoading: boolean;
+    error: string | null;
+    cart: CartItem[];
+}
+
+const { state, actions } = store<StoreState>('myplugin/cart', {
+    state: {
+        isLoading: false,
+        error: null,
+        cart: [],
+    },
+    
+    actions: {
+        // ✅ 6.8: Proper async handling with generator functions
+        *addToCart() {
+            const context = getContext<ProductContext>();
+            state.isLoading = true;
+            state.error = null;
+            
+            try {
+                const response: Response = yield fetch('/wp-json/myplugin/v1/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': (window as any).wpApiSettings.nonce,
+                    },
+                    body: JSON.stringify({
+                        product_id: context.productId,
+                        quantity: context.quantity,
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to add to cart');
+                }
+                
+                const data: { cart: CartItem[] } = yield response.json();
+                state.cart = data.cart;
+                
+            } catch (error) {
+                state.error = error instanceof Error ? error.message : 'Unknown error';
+                console.error('Cart error:', error);
+            } finally {
+                state.isLoading = false;
+            }
+        },
+        
+        // ✅ 6.8: Proper iterable check for wp-each directive
+        removeItem(itemId: number) {
+            // Ensure cart is iterable before filtering
+            if (Array.isArray(state.cart)) {
+                state.cart = state.cart.filter(item => item.id !== itemId);
+            } else {
+                console.error('Cart is not iterable');
+                state.cart = [];
+            }
+        },
+        
+        updateQuantity(itemId: number, newQuantity: number) {
+            const context = getContext<ProductContext>();
+            context.quantity = Math.max(1, newQuantity);
+        },
+    },
+    
+    callbacks: {
+        onInit() {
+            console.log('Cart initialized');
+        },
+    },
+});
+```
+
+#### Data Fetching with @wordpress/data
+- Use useSelect for reading data
+- Use useDispatch for actions
+- Optimize useSelect to avoid 6.8 performance warnings
+- Memoize selectors properly
+
+```typescript
+// ✅ CORRECT - Optimized useSelect (WordPress 6.8)
+import { useSelect, useDispatch } from '@wordpress/data';
+import { store as coreStore } from '@wordpress/core-data';
+import { useMemo } from '@wordpress/element';
+
+interface Post {
+    id: number;
+    title: { rendered: string };
+    content: { rendered: string };
+}
+
+function MyBlockEdit() {
+    // ✅ Memoize selector args to prevent re-renders
+    const queryArgs = useMemo(() => ({
+        per_page: 10,
+        _embed: true,
+    }), []);
+    
+    // ✅ Use dependency array to control when selector runs
+    const posts = useSelect((select) => {
+        return select(coreStore).getEntityRecords('postType', 'post', queryArgs) as Post[] | null;
+    }, [queryArgs]);
+    
+    const { savePost } = useDispatch(coreStore);
+    
+    // ❌ WRONG - This will trigger 6.8 performance warning
+    // const posts = useSelect((select) => {
+    //     return select(coreStore).getEntityRecords('postType', 'post', {
+    //         per_page: 10, // Object created on every render!
+    //     });
+    // }); // No dependency array!
+    
+    if (!posts) {
+        return <div>Loading...</div>;
+    }
+    
+    return (
+        <ul>
+            {posts.map(post => (
+                <li key={post.id}>{post.title.rendered}</li>
+            ))}
+        </ul>
+    );
+}
+```
+
+### REST API Development
+
+#### Endpoint Registration
+```php
+// ✅ CORRECT - Complete REST API endpoint with all security
+namespace MyPlugin\API;
+
+use WP_REST_Request;
+use WP_REST_Response;
+use WP_Error;
+
+function register_api_endpoints(): void {
+    register_rest_route('myplugin/v1', '/products', [
+        'methods' => 'GET',
+        'callback' => __NAMESPACE__ . '\\get_products',
+        'permission_callback' => __NAMESPACE__ . '\\check_read_permission',
+        'args' => [
+            'category' => [
+                'required' => false,
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+                'validate_callback' => fn($value) => is_string($value) && strlen($value) <= 50,
+            ],
+            'per_page' => [
+                'required' => false,
+                'type' => 'integer',
+                'default' => 10,
+                'minimum' => 1,
+                'maximum' => 100,
+            ],
+        ],
+    ]);
+    
+    register_rest_route('myplugin/v1', '/products/(?P<id>\d+)', [
+        'methods' => 'POST',
+        'callback' => __NAMESPACE__ . '\\update_product',
+        'permission_callback' => __NAMESPACE__ . '\\check_edit_permission',
+        'args' => [
+            'id' => [
+                'required' => true,
+                'type' => 'integer',
+                'validate_callback' => fn($value) => is_numeric($value) && $value > 0,
+            ],
+            'title' => [
+                'required' => true,
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+            ],
+            'price' => [
+                'required' => false,
+                'type' => 'number',
+                'validate_callback' => fn($value) => is_numeric($value) && $value >= 0,
+            ],
+        ],
+    ]);
+}
+add_action('rest_api_init', __NAMESPACE__ . '\\register_api_endpoints');
+
+function check_read_permission(): bool {
+    return true; // Public endpoint
+}
+
+function check_edit_permission(): bool {
+    return current_user_can('edit_posts');
+}
+
+function get_products(WP_REST_Request $request): WP_REST_Response|WP_Error {
+    $category = $request->get_param('category');
+    $per_page = $request->get_param('per_page');
+    
+    $args = [
+        'post_type' => 'product',
+        'posts_per_page' => $per_page,
+        'post_status' => 'publish',
+    ];
+    
+    if ($category) {
+        $args['tax_query'] = [[
+            'taxonomy' => 'product_category',
+            'field' => 'slug',
+            'terms' => $category,
+        ]];
+    }
+    
+    $query = new \WP_Query($args);
+    
+    if ($query->have_posts()) {
+        $products = array_map(
+            fn($post) => prepare_product_response($post),
+            $query->posts
+        );
+        
+        return new WP_REST_Response([
+            'success' => true,
+            'data' => $products,
+            'total' => $query->found_posts,
+        ], 200);
+    }
+    
+    return new WP_Error(
+        'no_products',
+        __('No products found', 'myplugin'),
+        ['status' => 404]
+    );
+}
+
+function prepare_product_response(\WP_Post $post): array {
+    return [
+        'id' => $post->ID,
+        'title' => $post->post_title,
+        'slug' => $post->post_name,
+        'price' => get_post_meta($post->ID, 'price', true),
+        'link' => get_permalink($post->ID),
+    ];
+}
+```
+
+#### Guzzle HTTP Client Usage
+```php
+// ✅ CORRECT - Guzzle with error handling
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+
+function fetch_external_api_data(string $endpoint): array|WP_Error {
+    try {
+        $client = new Client([
+            'base_uri' => 'https://api.example.com',
+            'timeout' => 10,
+            'headers' => [
+                'Accept' => 'application/json',
+                'User-Agent' => 'MyPlugin/1.0',
+            ],
+        ]);
+        
+        $response = $client->request('GET', $endpoint, [
+            'query' => [
+                'api_key' => get_option('myplugin_api_key'),
+            ],
+        ]);
+        
+        $body = $response->getBody()->getContents();
+        $data = json_decode($body, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return new WP_Error('json_error', 'Invalid JSON response');
+        }
+        
+        return $data;
+        
+    } catch (RequestException $e) {
+        return new WP_Error(
+            'api_error',
+            $e->getMessage(),
+            ['status' => $e->getCode()]
+        );
+    }
+}
+
+// Use with caching
+function get_cached_api_data(string $endpoint): array|WP_Error {
+    $cache_key = 'myplugin_api_' . md5($endpoint);
+    $cached = get_transient($cache_key);
+    
+    if (false !== $cached) {
+        return $cached;
+    }
+    
+    $data = fetch_external_api_data($endpoint);
+    
+    if (!is_wp_error($data)) {
+        set_transient($cache_key, $data, HOUR_IN_SECONDS);
+    }
+    
+    return $data;
+}
+```
+
+## 🎨 WordPress 6.8 Specific Features
+
+### Block Hooks API (NEW in 6.8)
+```php
+// ✅ Hook blocks into post content dynamically
+function register_hooked_blocks(): void {
+    register_block_type(__DIR__ . '/build/cta-block', [
+        'block_hooks' => [
+            'core/post-content' => 'last_child', // Add to end of posts
+        ],
+    ]);
+    
+    register_block_type(__DIR__ . '/build/social-share', [
+        'block_hooks' => [
+            'core/post-content' => 'first_child', // Add to start of posts
+        ],
+    ]);
+}
+add_action('init', __NAMESPACE__ . '\\register_hooked_blocks');
+
+// Conditional hooks - only on specific post types
+function conditional_block_hooks(array $parsed_block): array {
+    if ('core/post-content' !== $parsed_block['blockName']) {
+        return $parsed_block;
+    }
+    
+    $post_type = get_post_type();
+    
+    // Only add newsletter signup to blog posts
+    if ('post' === $post_type) {
+        $parsed_block['innerBlocks'][] = [
+            'blockName' => 'myplugin/newsletter-signup',
+            'attrs' => ['variant' => 'minimal'],
+            'innerBlocks' => [],
+        ];
+    }
+    
+    return $parsed_block;
+}
+add_filter('render_block_data', __NAMESPACE__ . '\\conditional_block_hooks');
+```
+
+### Query Loop Enhancements (6.8)
+```typescript
+// ✅ Use new Query Loop features
+registerBlockType('myplugin/custom-query', {
+    // ... other config
+    
+    edit: ({ attributes, setAttributes }) => {
+        return (
+            <InspectorControls>
+                <PanelBody title="Query Settings">
+                    {/* 6.8 NEW: Ignore sticky posts */}
+                    <ToggleControl
+                        label="Ignore Sticky Posts"
+                        checked={attributes.ignoreStickyPosts}
+                        onChange={(ignoreStickyPosts) => setAttributes({ ignoreStickyPosts })}
+                    />
+                    
+                    {/* 6.8 NEW: Sort by menu order */}
+                    <SelectControl
+                        label="Order By"
+                        value={attributes.orderBy}
+                        options={[
+                            { label: 'Date', value: 'date' },
+                            { label: 'Title', value: 'title' },
+                            { label: 'Menu Order', value: 'menu_order' }, // NEW in 6.8
+                        ]}
+                        onChange={(orderBy) => setAttributes({ orderBy })}
+                    />
+                </PanelBody>
+            </InspectorControls>
+        );
+    },
+});
+```
+
+### Speculative Loading Optimization (6.8)
+```php
+// ✅ Optimize for speculative loading
+function optimize_for_speculative_loading(): void {
+    // WordPress 6.8 handles this automatically, but you can customize:
+    
+    // Disable for resource-heavy pages
+    add_filter('wp_resource_hints', function($hints, $relation_type) {
+        if ('prerender' === $relation_type && is_singular('heavy-resource')) {
+            return []; // Disable prefetch for specific pages
+        }
+        return $hints;
+    }, 10, 2);
+    
+    // Ensure proper cache headers for API endpoints
+    add_filter('rest_post_dispatch', function($result, $server, $request) {
+        $result->header('Cache-Control', 'public, max-age=300');
+        return $result;
+    }, 10, 3);
+}
+add_action('init', __NAMESPACE__ . '\\optimize_for_speculative_loading');
+```
+
+## 📁 Project Structure
+
+```
+plugin-name/
+├── plugin-name.php              # Main plugin file
+├── .cursorrules                 # This file
+├── composer.json                # PHP dependencies
+├── package.json                 # Node dependencies
+├── webpack.config.js            # or use @wordpress/scripts
+├── tsconfig.json               # TypeScript config
+├── .eslintrc.json              # ESLint config
+├── .phpcs.xml                  # PHP_CodeSniffer config
+│
+├── src/
+│   ├── blocks/                 # Gutenberg blocks (TypeScript)
+│   │   ├── example-block/
+│   │   │   ├── block.json
+│   │   │   ├── edit.tsx
+│   │   │   ├── save.tsx
+│   │   │   ├── style.scss
+│   │   │   └── index.tsx
+│   │   └── another-block/
+│   │
+│   ├── api/                    # REST API endpoints
+│   │   ├── class-products-controller.php
+│   │   └── class-auth-controller.php
+│   │
+│   ├── includes/               # PHP logic
+│   │   ├── class-plugin.php
+│   │   ├── class-activator.php
+│   │   └── functions.php
+│   │
+│   ├── admin/                  # Admin functionality
+│   │   ├── class-admin.php
+│   │   └── class-settings.php
+│   │
+│   └── assets/                 # Static assets
+│       ├── css/
+│       ├── images/
+│       └── js/
+│
+├── build/                      # Compiled assets (gitignored)
+│
+├── languages/                  # Translation files
+│   └── myplugin.pot
+│
+└── tests/                      # Unit & integration tests
+    ├── phpunit/
+    └── jest/
+```
+
+## ✅ Code Quality Checklist
+
+Before committing code, ensure:
+
+### PHP
+- [ ] `declare(strict_types=1);` at top of file
+- [ ] All functions have type hints
+- [ ] All output is escaped (esc_html, esc_url, etc.)
+- [ ] All input is sanitized
+- [ ] Nonces used for form submissions
+- [ ] Capability checks for sensitive operations
+- [ ] Follows WordPress Coding Standards
+- [ ] Uses functional patterns where possible
+- [ ] No direct database queries (use WP_Query, get_posts, etc.)
+
+### TypeScript/React
+- [ ] All files are .ts or .tsx (no .js)
+- [ ] Interfaces defined for all props and state
+- [ ] useSelect optimized with dependencies
+- [ ] Interactivity API follows 6.8 best practices
+- [ ] Components are functional (no classes)
+- [ ] Proper i18n with __() function
+- [ ] Accessibility attributes included
+
+### General
+- [ ] Code passes linting (ESLint, PHPCS)
+- [ ] Comments explain "why" not "what"
+- [ ] No console.log in production code
+- [ ] Error handling implemented
+- [ ] Performance considered (caching, query optimization)
+- [ ] Mobile responsive
+- [ ] Accessibility tested
+
+## 🚫 Common Mistakes to Avoid
+
+### PHP
+```php
+// ❌ NEVER do these:
+- Direct SQL queries without $wpdb->prepare()
+- Echo user input without escaping
+- Use extract() function
+- Mix HTML and PHP logic
+- Use global variables
+- Suppress errors with @
+- Use deprecated WordPress functions
+- Trust $_GET, $_POST without sanitization
+
+// ✅ DO these instead:
+- Use WP_Query for database operations
+- Always escape output
+- Separate concerns (logic vs. presentation)
+- Use proper namespaces
+- Handle errors explicitly
+- Check WordPress version compatibility
+- Sanitize and validate all input
+```
+
+### TypeScript/React
+```typescript
+// ❌ NEVER do these:
+- Use 'any' type without justification
+- Create objects in useSelect without memoization
+- Use class components
+- Forget dependency arrays in hooks
+- Directly mutate state
+- Use inline functions in JSX attributes repeatedly
+
+// ✅ DO these instead:
+- Define proper interfaces
+- Memoize objects with useMemo
+- Use functional components
+- Always specify dependencies
+- Use setState or setAttributes
+- Extract functions outside component or use useCallback
+```
+
+## 📚 Required Reading
+
+- WordPress 6.8 Field Guide: https://make.wordpress.org/core/2025/03/28/wordpress-6-8-field-guide/
+- Interactivity API: https://developer.wordpress.org/block-editor/reference-guides/interactivity-api/
+- Block Hooks API: https://make.wordpress.org/core/handbook/block-hooks/
+- WordPress Coding Standards: https://developer.wordpress.org/coding-standards/
+
+## 🔧 Development Tools Setup
+
+```bash
+# Initialize project
+npm init @wordpress/block
+
+# Install dependencies
+npm install
+composer install
+
+# Development
+npm run start          # Watch mode
+npm run build          # Production build
+npm run lint:js        # Lint JavaScript/TypeScript
+composer phpcs         # Lint PHP
+
+# Testing
+npm run test           # Jest tests
+composer phpunit       # PHP unit tests
+```
+
+## 🎯 Performance Guidelines
+
+- Use transients for expensive operations (cache 1-12 hours)
+- Implement lazy loading for images
+- Minimize REST API calls (batch requests when possible)
+- Use WP_Query pagination for large datasets
+- Leverage WordPress 6.8's built-in speculative loading
+- Optimize database queries (avoid N+1 problems)
+- Use proper cache headers for API responses
+- Minimize bundle size (code splitting, tree shaking)
+
+## 🔐 Security Reminders
+
+1. **NEVER trust user input** - Always sanitize and validate
+2. **ALWAYS escape output** - Use appropriate esc_* functions
+3. **Use nonces** - For all form submissions and AJAX
+4. **Check capabilities** - Before sensitive operations
+5. **Prepare SQL** - Use $wpdb->prepare() if needed
+6. **HTTPS only** - For API communications
+7. **Rate limiting** - Implement for public endpoints
+8. **SQL injection** - Avoid direct queries, use WP APIs
+
+---
+
+## 📝 Final Notes
+
+- This is for WordPress 6.8+ only - features may not work on older versions
+- Always test thoroughly before deploying
+- Keep WordPress, PHP, and dependencies updated
+- Use staging environments for testing
+- Enable WP_DEBUG during development
+- Follow semantic versioning for releases
+- Document breaking changes in changelog
+
+**Priority: Code quality > Speed of development**
+**Always: Security first, performance second, features third**

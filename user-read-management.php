@@ -2,35 +2,37 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.4
+ * Version: 1.5
  * Author: Daisuke Yamasaki
  */
 
 // プラグイン有効化時にカスタムロールを作成
 function urm_create_custom_roles() {
-    // 獣医師ロール
-    add_role( 'veterinarian', '獣医師', array(
-        'read' => true,
-        'edit_posts' => false,
-    ) );
+    // bbPress登録ユーザーの権限を取得
+    $bbpress_caps = array();
+    $bbp_participant = get_role( 'bbp_participant' );
     
-    // 看護師ロール
-    add_role( 'nurse', '看護師', array(
-        'read' => true,
-        'edit_posts' => false,
-    ) );
+    if ( $bbp_participant ) {
+        // bbPress登録ユーザーの権限をコピー
+        $bbpress_caps = $bbp_participant->capabilities;
+    } else {
+        // bbPressがない場合の基本権限
+        $bbpress_caps = array(
+            'read' => true,
+        );
+    }
     
-    // 管理室ロール
-    add_role( 'admin_office', '管理室', array(
-        'read' => true,
-        'edit_posts' => false,
-    ) );
+    // 獣医師ロール（bbPress権限付き）
+    add_role( 'veterinarian', '獣医師（bbPress権限）', $bbpress_caps );
     
-    // 病院ロール
-    add_role( 'hospital', '病院', array(
-        'read' => true,
-        'edit_posts' => false,
-    ) );
+    // 看護師ロール（bbPress権限付き）
+    add_role( 'nurse', '看護師（bbPress権限）', $bbpress_caps );
+    
+    // 管理室ロール（bbPress権限付き）
+    add_role( 'admin_office', '管理室（bbPress権限）', $bbpress_caps );
+    
+    // 病院ロール（bbPress権限付き）
+    add_role( 'hospital', '病院（bbPress権限）', $bbpress_caps );
 }
 register_activation_hook( __FILE__, 'urm_create_custom_roles' );
 

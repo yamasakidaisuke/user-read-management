@@ -2,9 +2,46 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.3
+ * Version: 1.4
  * Author: Daisuke Yamasaki
  */
+
+// プラグイン有効化時にカスタムロールを作成
+function urm_create_custom_roles() {
+    // 獣医師ロール
+    add_role( 'veterinarian', '獣医師', array(
+        'read' => true,
+        'edit_posts' => false,
+    ) );
+    
+    // 看護師ロール
+    add_role( 'nurse', '看護師', array(
+        'read' => true,
+        'edit_posts' => false,
+    ) );
+    
+    // 管理室ロール
+    add_role( 'admin_office', '管理室', array(
+        'read' => true,
+        'edit_posts' => false,
+    ) );
+    
+    // 病院ロール
+    add_role( 'hospital', '病院', array(
+        'read' => true,
+        'edit_posts' => false,
+    ) );
+}
+register_activation_hook( __FILE__, 'urm_create_custom_roles' );
+
+// プラグイン無効化時にカスタムロールを削除
+function urm_remove_custom_roles() {
+    remove_role( 'veterinarian' );
+    remove_role( 'nurse' );
+    remove_role( 'admin_office' );
+    remove_role( 'hospital' );
+}
+register_deactivation_hook( __FILE__, 'urm_remove_custom_roles' );
 
 // チェックボックスを表示したい投稿カテゴリーと、チェックボックスを非表示にしたいユーザーのIDを配列として定義
 $show_checkbox_categories = array('manuals', 'medical-information'); // ここにチェックボックスを表示したいカテゴリースラッグを設定
@@ -105,8 +142,11 @@ function export_read_status_csv() {
 
   global $exclude_user_ids, $exclude_post_ids;
 
-  // ユーザーの取得
-  $users = get_users( array( 'fields' => array( 'ID', 'display_name' ) ) );
+  // ユーザーの取得（獣医師のみ）
+  $users = get_users( array(
+      'role' => 'veterinarian', // 獣医師ロールのみ取得
+      'fields' => array( 'ID', 'display_name' )
+  ) );
 
   // CSVデータの生成
   $csv_data = array();
@@ -224,8 +264,11 @@ function display_read_status_overview() {
 
     $current_user_id = get_current_user_id(); // 現在のユーザーIDを取得
 
-    // ユーザーの取得
-    $users = get_users(array('fields' => array('ID', 'display_name')));
+    // ユーザーの取得（獣医師のみ）
+    $users = get_users(array(
+        'role' => 'veterinarian', // 獣医師ロールのみ取得
+        'fields' => array('ID', 'display_name')
+    ));
 
     // 表の開始（スタイルを先に出力）
     echo '<style>

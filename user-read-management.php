@@ -2,7 +2,7 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.2
+ * Version: 1.3
  * Author: Daisuke Yamasaki
  */
 
@@ -229,14 +229,127 @@ function display_read_status_overview() {
 
     // 表の開始（スタイルを先に出力）
     echo '<style>
-        .p-read-status-section { margin-bottom: 40px; }
-        .p-read-status-section-title { font-size: 24px; font-weight: bold; margin-bottom: 15px; padding: 10px; background: #f0f0f0; border-left: 5px solid #0073aa; }
-        .p-read-status-table { border-collapse: collapse; margin-bottom: 20px; }
-        .p-read-status-table th { position: sticky; top: 0; z-index: 3; background: #fff; }
-        /* 先頭列を固定。z-index 調整でヘッダー行より手前に出ないよう注意 */
+        .p-read-status-section { 
+            margin-bottom: 40px; 
+        }
+        
+        .p-read-status-section-title { 
+            font-size: 24px; 
+            font-weight: bold; 
+            margin-bottom: 15px; 
+            padding: 15px 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .p-read-status-table { 
+            border-collapse: collapse; 
+            margin-bottom: 20px; 
+            width: 100%;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        /* ヘッダー行のスタイル */
+        .p-read-status-table th { 
+            position: sticky; 
+            top: 0; 
+            z-index: 3; 
+            background: #2c3e50;
+            color: #fff;
+            padding: 15px 12px;
+            text-align: center;
+            font-weight: 600;
+            border: 1px solid #34495e;
+            font-size: 14px;
+        }
+        
+        /* 通常のセル */
+        .p-read-status-table td { 
+            padding: 12px; 
+            border: 1px solid #e0e0e0; 
+            text-align: center;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+        }
+        
+        /* 投稿タイトル列（左端） */
+        .p-read-status-table td:first-child { 
+            text-align: left; 
+            font-weight: 500;
+            background: #fff;
+        }
+        
+        /* シマシマ背景（奇数行） */
+        .p-read-status-table tbody tr:nth-child(odd) td { 
+            background-color: #f8f9fa; 
+        }
+        
+        /* シマシマ背景（偶数行） */
+        .p-read-status-table tbody tr:nth-child(even) td { 
+            background-color: #ffffff; 
+        }
+        
+        /* 行全体のホバー効果 */
+        .p-read-status-table tbody tr:hover td { 
+            background-color: #e3f2fd !important; 
+        }
+        
+        /* 先頭列を固定 */
         .p-read-status-table td:first-child,
-        .p-read-status-table th:first-child { position: sticky; left: 0; z-index: 2; background: #fff; }
-        .p-read-status-table th:first-child { z-index: 4; } /* 行見出し + 列見出しが交わるセルを最前面に */
+        .p-read-status-table th:first-child { 
+            position: sticky; 
+            left: 0; 
+            z-index: 2; 
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+        
+        .p-read-status-table th:first-child { 
+            z-index: 4;
+            background: #2c3e50;
+        }
+        
+        /* 編集可能なセル */
+        .p-read-status-table .p-read-status-cell { 
+            cursor: pointer;
+        }
+        
+        /* 編集可能なセルのホバー効果 */
+        .p-read-status-table .p-read-status-cell:hover { 
+            background-color: #fff3cd !important;
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            font-weight: bold;
+        }
+        
+        /* 読了済みセル */
+        .p-read-status-table td[data-status="read"] { 
+            color: #28a745; 
+            font-weight: 600;
+        }
+        
+        /* 未読セル */
+        .p-read-status-table td[data-status="unread"],
+        .p-read-status-table td[data-status=""] { 
+            color: #dc3545; 
+            font-weight: 600;
+        }
+        
+        /* 表示のみのセル */
+        .p-read-status-table .p-read-status-cell-readonly { 
+            opacity: 0.7; 
+            cursor: default; 
+        }
+        
+        /* スクロールコンテナ */
+        .p-read-status-scroll-container { 
+            overflow: auto; 
+            border-radius: 8px;
+            background: #fff;
+        }
     </style>';
 
     // カテゴリーごとの表示設定
@@ -264,7 +377,7 @@ function display_read_status_overview() {
         echo '<h2 class="p-read-status-section-title">' . esc_html($category_name) . '</h2>';
 
         // 表の開始
-        echo '<div style="overflow: auto;">';
+        echo '<div class="p-read-status-scroll-container">';
         echo '<table class="p-read-status-table">';
 
         // ヘッダーとして全ユーザー名の出力
@@ -290,15 +403,13 @@ function display_read_status_overview() {
             // 各ユーザーの読了状態をセルとして追加
             foreach ($users as $user) {
                 $status = get_user_meta($user->ID, 'read_status_' . $post->ID, true);
-                $color = ($status == 'read') ? 'blue' : 'red';
                 $display_text = ($status == 'read') ? '済' : '未';
                 
                 // 管理者または自分自身のセルの場合はクリック可能に、それ以外は表示のみ
                 $is_editable = (current_user_can('administrator') || $user->ID == $current_user_id);
                 $cell_class = $is_editable ? 'p-read-status-cell' : 'p-read-status-cell-readonly';
-                $cell_style = $is_editable ? "color:$color; cursor:pointer;" : "color:$color; cursor:default; opacity:0.7;";
                 
-                echo '<td class="' . $cell_class . '" data-user-id="' . $user->ID . '" data-post-id="' . $post->ID . '" data-status="' . $status . '" style="' . $cell_style . '">' . $display_text . '</td>';
+                echo '<td class="' . $cell_class . '" data-user-id="' . $user->ID . '" data-post-id="' . $post->ID . '" data-status="' . $status . '">' . $display_text . '</td>';
             }
             echo '</tr>';
         }

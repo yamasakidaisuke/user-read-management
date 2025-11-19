@@ -2,7 +2,7 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.1
+ * Version: 1.2
  * Author: Daisuke Yamasaki
  */
 
@@ -108,39 +108,47 @@ function export_read_status_csv() {
   // ユーザーの取得
   $users = get_users( array( 'fields' => array( 'ID', 'display_name' ) ) );
 
-  // 投稿の取得
-  $args = array(
-      'post_type' => 'post',
-      'posts_per_page' => -1,
-      'category_name' => 'manuals,medical-information',
-  );
-  $posts = get_posts( $args );
-
   // CSVデータの生成
   $csv_data = array();
 
   // ヘッダー行
-  $header = array( '投稿タイトル' );
+  $header = array( 'カテゴリー', '投稿タイトル' );
   foreach ( $users as $user ) {
       $header[] = $user->display_name;
   }
   $csv_data[] = $header;
 
-  // データ行
-  foreach ( $posts as $post ) {
-      // 除外する記事のスキップ
-      if ( in_array( $post->ID, $exclude_post_ids ) ) {
-          continue;
-      }
+  // カテゴリーごとの設定
+  $categories = array(
+      'manuals' => '診療マニュアル',
+      'medical-information' => '医療情報'
+  );
 
-      $row = array( get_the_title( $post->ID ) );
-      
-      foreach ( $users as $user ) {
-          $status = get_user_meta( $user->ID, 'read_status_' . $post->ID, true );
-          $row[] = ( $status === 'read' ) ? '済' : '未';
+  foreach ( $categories as $category_slug => $category_name ) {
+      // カテゴリーごとの投稿を取得
+      $args = array(
+          'post_type' => 'post',
+          'posts_per_page' => -1,
+          'category_name' => $category_slug,
+      );
+      $posts = get_posts( $args );
+
+      // データ行
+      foreach ( $posts as $post ) {
+          // 除外する記事のスキップ
+          if ( in_array( $post->ID, $exclude_post_ids ) ) {
+              continue;
+          }
+
+          $row = array( $category_name, get_the_title( $post->ID ) );
+          
+          foreach ( $users as $user ) {
+              $status = get_user_meta( $user->ID, 'read_status_' . $post->ID, true );
+              $row[] = ( $status === 'read' ) ? '済' : '未';
+          }
+          
+          $csv_data[] = $row;
       }
-      
-      $csv_data[] = $row;
   }
 
   // タイムスタンプ付きファイル名
@@ -219,18 +227,11 @@ function display_read_status_overview() {
     // ユーザーの取得
     $users = get_users(array('fields' => array('ID', 'display_name')));
 
-    // 投稿の取得条件を設定
-    $args = array(
-        'post_type' => 'post',
-        'posts_per_page' => -1,
-        'category_name' => 'manuals,medical-information', // 特定のカテゴリー
-    );
-
-    $posts = get_posts($args);
-
     // 表の開始（スタイルを先に出力）
     echo '<style>
-        .p-read-status-table { border-collapse: collapse; }
+        .p-read-status-section { margin-bottom: 40px; }
+        .p-read-status-section-title { font-size: 24px; font-weight: bold; margin-bottom: 15px; padding: 10px; background: #f0f0f0; border-left: 5px solid #0073aa; }
+        .p-read-status-table { border-collapse: collapse; margin-bottom: 20px; }
         .p-read-status-table th { position: sticky; top: 0; z-index: 3; background: #fff; }
         /* 先頭列を固定。z-index 調整でヘッダー行より手前に出ないよう注意 */
         .p-read-status-table td:first-child,
@@ -238,49 +239,75 @@ function display_read_status_overview() {
         .p-read-status-table th:first-child { z-index: 4; } /* 行見出し + 列見出しが交わるセルを最前面に */
     </style>';
 
-    echo '<div style="overflow: auto;">';
-    echo '<table class="p-read-status-table">';  // ← ここでクラスを付与
+    // カテゴリーごとの表示設定
+    $categories = array(
+        'manuals' => '診療マニュアル',
+        'medical-information' => '医療情報'
+    );
 
-    // 全ユーザーが全員分の読了状態を確認可能（変更は管理者のみ、または自分のみ）
-    
-    // ヘッダーとして全ユーザー名の出力
-    echo '<tr class="p-read-status-header"><th>投稿タイトル / ユーザー名</th>';
-    foreach ($users as $user) {
-        echo '<th class="p-read-status-user-name">' . $user->display_name . '</th>';
-    }
-    echo '</tr>';
+    foreach ($categories as $category_slug => $category_name) {
+        // カテゴリーごとの投稿を取得
+        $args = array(
+            'post_type' => 'post',
+            'posts_per_page' => -1,
+            'category_name' => $category_slug,
+        );
+        $posts = get_posts($args);
 
-    // 各投稿ごとに行を追加
-    foreach ($posts as $post) {
-        // 除外する記事のスキップ
-        if (in_array($post->ID, $exclude_post_ids)) {
+        // 投稿がない場合はスキップ
+        if (empty($posts)) {
             continue;
         }
 
-        // 投稿タイトルとリンクの出力
-        $post_title = get_the_title($post->ID);
-        $post_link = get_permalink($post->ID);
-        echo '<tr>';
-        echo '<td><a href="' . esc_url($post_link) . '">' . esc_html($post_title) . '</a></td>';
+        // セクション見出し
+        echo '<div class="p-read-status-section">';
+        echo '<h2 class="p-read-status-section-title">' . esc_html($category_name) . '</h2>';
 
-        // 各ユーザーの読了状態をセルとして追加
+        // 表の開始
+        echo '<div style="overflow: auto;">';
+        echo '<table class="p-read-status-table">';
+
+        // ヘッダーとして全ユーザー名の出力
+        echo '<tr class="p-read-status-header"><th>投稿タイトル / ユーザー名</th>';
         foreach ($users as $user) {
-            $status = get_user_meta($user->ID, 'read_status_' . $post->ID, true);
-            $color = ($status == 'read') ? 'blue' : 'red';
-            $display_text = ($status == 'read') ? '済' : '未';
-            
-            // 管理者または自分自身のセルの場合はクリック可能に、それ以外は表示のみ
-            $is_editable = (current_user_can('administrator') || $user->ID == $current_user_id);
-            $cell_class = $is_editable ? 'p-read-status-cell' : 'p-read-status-cell-readonly';
-            $cell_style = $is_editable ? "color:$color; cursor:pointer;" : "color:$color; cursor:default; opacity:0.7;";
-            
-            echo '<td class="' . $cell_class . '" data-user-id="' . $user->ID . '" data-post-id="' . $post->ID . '" data-status="' . $status . '" style="' . $cell_style . '">' . $display_text . '</td>';
+            echo '<th class="p-read-status-user-name">' . $user->display_name . '</th>';
         }
         echo '</tr>';
+
+        // 各投稿ごとに行を追加
+        foreach ($posts as $post) {
+            // 除外する記事のスキップ
+            if (in_array($post->ID, $exclude_post_ids)) {
+                continue;
+            }
+
+            // 投稿タイトルとリンクの出力
+            $post_title = get_the_title($post->ID);
+            $post_link = get_permalink($post->ID);
+            echo '<tr>';
+            echo '<td><a href="' . esc_url($post_link) . '">' . esc_html($post_title) . '</a></td>';
+
+            // 各ユーザーの読了状態をセルとして追加
+            foreach ($users as $user) {
+                $status = get_user_meta($user->ID, 'read_status_' . $post->ID, true);
+                $color = ($status == 'read') ? 'blue' : 'red';
+                $display_text = ($status == 'read') ? '済' : '未';
+                
+                // 管理者または自分自身のセルの場合はクリック可能に、それ以外は表示のみ
+                $is_editable = (current_user_can('administrator') || $user->ID == $current_user_id);
+                $cell_class = $is_editable ? 'p-read-status-cell' : 'p-read-status-cell-readonly';
+                $cell_style = $is_editable ? "color:$color; cursor:pointer;" : "color:$color; cursor:default; opacity:0.7;";
+                
+                echo '<td class="' . $cell_class . '" data-user-id="' . $user->ID . '" data-post-id="' . $post->ID . '" data-status="' . $status . '" style="' . $cell_style . '">' . $display_text . '</td>';
+            }
+            echo '</tr>';
+        }
+
+        // 表の終了
+        echo '</table>';
+        echo '</div>';
+        echo '</div>'; // セクション終了
     }
-    // 表の終了
-    echo '</table>';
-    echo '</div>';
 
     // 管理者のみCSVエクスポートボタンを表示
     if (current_user_can('administrator')) {

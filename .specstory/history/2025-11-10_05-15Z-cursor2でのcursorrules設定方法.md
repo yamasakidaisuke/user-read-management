@@ -1447,6 +1447,351 @@ Lines added: 1, lines removed: 1
 
 ---
 
+<think><details><summary>Thought Process</summary>
+プラグインのバージョンも更新します。</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: user-read-management.php</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -3,5 +3,5 @@
+   * Plugin Name: User Read Management
+   * Description: A plugin to manage the read status for each user
+-  * Version: 1.0
++  * Version: 1.1
+   * Author: Daisuke Yamasaki
+   */
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+次にREADME.mdも更新して、CSVエクスポート機能を追加したことを記載します。</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: README.md</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 1
+
+```diff
+@@ -22,5 +22,11 @@
+  - 固定ヘッダー・固定列でスクロール時も見やすい
+  
+- ### 3. セキュリティ
++ ### 3. CSVエクスポート機能（管理者のみ）
++ - 読了状態一覧をCSVファイルでダウンロード可能
++ - ファイル名: &#96;YYYYMMDDHHmmss_end-of-reading-management.csv&#96;
++ - Excel対応（UTF-8 BOM付き）
++ - タイムスタンプ付きで記録管理に最適
++ 
++ ### 4. セキュリティ
+  - WordPress nonce による CSRF 対策
+  - 権限チェック（自分または管理者のみ編集可能）
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+変更履歴のセクションも更新します。</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: README.md</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -160,4 +160,9 @@
+  
+  ## 📝 変更履歴
++ 
++ ### Version 1.1
++ - CSVエクスポート機能を追加（管理者のみ）
++ - タイムスタンプ付きファイル名でダウンロード
++ - Excel対応（UTF-8 BOM付き）
+  
+  ### Version 1.0
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+使い方のセクションにもCSVエクスポートについて追加しておきましょう。</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: README.md</summary>
+
+**Chunk 1**
+Lines added: 9, lines removed: undefined
+
+```diff
+@@ -67,4 +67,13 @@
+  
+  特定カテゴリー（&#96;manuals&#96;, &#96;medical-information&#96;およびその子カテゴリー）に属する投稿を表示すると、投稿コンテンツの下に「読みました」チェックボックスが自動的に表示されます。
++ 
++ ### CSVエクスポート（管理者のみ）
++ 
++ 読了状態一覧表の下部に「CSVエクスポート」ボタンが表示されます（管理者のみ）。
++ 
++ 1. ボタンをクリック
++ 2. CSVファイルが自動ダウンロード
++ 3. ファイル名: &#96;20251110123456_end-of-reading-management.csv&#96;（タイムスタンプ付き）
++ 4. Excelで開くとそのまま日本語が正しく表示されます
+  
+  ## ⚙️ カスタマイズ設定
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+すべての変更が完了したので、GitHubにプッシュしましょう。</details></think>
+
+---
+
+<tool-use data-tool-type="bash" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **command** • Run command: git add .</summary>
+
+```bash
+git add .
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+次にコミットして、GitHubにプッシュします。</details></think>
+
+---
+
+<tool-use data-tool-type="bash" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **command** • Run command: git commit -m "v1.1: Add CSV export feature for administrators"</summary>
+
+```bash
+git commit -m "v1.1: Add CSV export feature for administrators"
+```
+
+```
+[main 0ae2eda] v1.1: Add CSV export feature for administrators
+ 4 files changed, 787 insertions(+), 21 deletions(-)
+
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+
+GitHubにプッシュします。</details></think>
+
+---
+
+<tool-use data-tool-type="bash" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **command** • Run command: git push origin main</summary>
+
+```bash
+git push origin main
+```
+
+```
+To https://github.com/yamasakidaisuke/user-read-management.git
+   6e6af8d..0ae2eda  main -&gt; main
+
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+
+完了しました！変更内容をまとめて報告します。</details></think>
+
+---
+
+## ✅ CSVエクスポート機能の追加が完了しました！
+
+### 📦 追加された機能
+
+#### 1. **CSVエクスポートボタン（管理者のみ表示）**
+- 読了状態一覧表の下部に表示
+- 青いボタンデザイン（WordPressのprimaryボタンスタイル）
+- クリック時は「エクスポート中...」と表示
+
+#### 2. **ファイル名形式**
+```
+20251110153045_end-of-reading-management.csv
+```
+- タイムスタンプ（YYYYMMDDHHmmss）+ `_end-of-reading-management.csv`
+- ダウンロードごとに一意のファイル名
+
+#### 3. **CSV内容**
+| 投稿タイトル | ユーザー1 | ユーザー2 | ユーザー3 |
+|-------------|----------|----------|----------|
+| 記事タイトル1 | 済 | 未 | 済 |
+| 記事タイトル2 | 未 | 済 | 未 |
+
+#### 4. **Excel対応**
+- UTF-8 BOM付きで出力
+- Excelで開いても日本語が文字化けしない
+- カンマとダブルクォートを適切にエスケープ
+
+### 🔒 セキュリティ
+
+- ✅ **権限チェック**: 管理者のみがエクスポート可能
+- ✅ **Nonce検証**: CSRF対策済み
+- ✅ **ボタン表示制限**: 管理者以外には表示されない
+
+### 📄 更新されたファイル
+
+1. **user-read-management.php** (v1.1)
+   - `export_read_status_csv()` 関数を追加
+   - ショートコードにCSVエクスポートボタンを追加
+   - AJAXアクション登録
+
+2. **read-status.js** (v1.2)
+   - CSVエクスポートボタンのクリックイベント
+   - CSVファイル生成とダウンロード処理
+   - UTF-8 BOM対応
+
+3. **README.md**
+   - CSVエクスポート機能の説明を追加
+   - 使い方セクションに手順を追加
+   - バージョン1.1の変更履歴を追加
+
+### 🌐 GitHubへの反映
+
+✅ **コミット完了**: `v1.1: Add CSV export feature for administrators`  
+✅ **プッシュ完了**: https://github.com/yamasakidaisuke/user-read-management
+
+### 🎯 動作確認方法
+
+1. 管理者アカウントでログイン
+2. `[read_status_overview]` ショートコードを配置したページを表示
+3. 表の下に「CSVエクスポート」ボタンが表示される
+4. ボタンをクリックするとCSVファイルがダウンロード
+5. Excelで開いて確認
+
+管理者以外のユーザーでは、表は見えますがCSVエクスポートボタンは表示されません！
+
+---
+
+_**User (2025-11-19 08:38Z)**_
+
+表を大きく2つに分けてほしい
+
+manuals'
+
+は診療マニュアル
+
+ 'medical-information
+
+は医療情報
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+ユーザーは表を2つに分けて、カテゴリーごとに別々の表として表示したいようです。
+- 1つ目の表: 'manuals' カテゴリー → 「診療マニュアル」
+- 2つ目の表: 'medical-information' カテゴリー → 「医療情報」
+
+それぞれに見出しをつけて、2つの独立した表として表示する必要があります。</details></think>
+
+---
+
+表を2つに分けて、カテゴリーごとに見出しをつけて表示するように修正します！
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: user-read-management.php</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+現在の構造を見ると、すべての投稿を1つの表にまとめて表示しています。これを2つの表に分けて、それぞれに見出しをつける必要があります。
+
+1. カテゴリーごとに投稿を取得
+2. 「診療マニュアル」セクション（manuals）
+3. 「医療情報」セクション（medical-information）
+
+それぞれのセクションに表を作成します。</details></think>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="search_replace">
+<details>
+<summary>Tool use: **search_replace**</summary>
+
+
+Parameters:
+
+```json
+{
+  &quot;relativeWorkspacePath&quot;: &quot;user-read-management.php&quot;
+}
+```
+Additional data:
+
+```json
+{
+  &quot;codeblockId&quot;: &quot;fc8f1bc8-5b87-492c-9fb9-9218712f6f3b&quot;
+}
+```
+User decision: **accepted**
+
+Status: **loading**
+
+
+</details>
+</tool-use>
+
+---
+
 
 
 ---

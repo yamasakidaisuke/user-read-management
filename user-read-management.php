@@ -2,7 +2,7 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.6
+ * Version: 1.7
  * Author: Daisuke Yamasaki
  */
 
@@ -290,7 +290,8 @@ function display_read_status_overview() {
         }
         
         .p-read-status-table { 
-            border-collapse: collapse; 
+            border-collapse: separate;
+            border-spacing: 0;
             margin-bottom: 20px; 
             width: 100%;
             box-shadow: 0 2px 15px rgba(0,0,0,0.08);
@@ -299,11 +300,12 @@ function display_read_status_overview() {
         }
         
         /* ヘッダー行のスタイル */
-        .p-read-status-table th { 
+        .p-read-status-table thead th { 
+            position: -webkit-sticky;
             position: sticky; 
             top: 0; 
-            z-index: 3; 
-            background: #2c3e50;
+            z-index: 10; 
+            background: #2c3e50 !important;
             color: #fff;
             padding: 15px 12px;
             text-align: center;
@@ -343,21 +345,23 @@ function display_read_status_overview() {
         }
         
         /* 先頭列を固定 */
-        .p-read-status-table td:first-child,
-        .p-read-status-table th:first-child { 
+        .p-read-status-table tbody td:first-child,
+        .p-read-status-table thead th:first-child { 
+            position: -webkit-sticky;
             position: sticky; 
             left: 0; 
-            z-index: 2; 
-            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            z-index: 5; 
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
         
         /* 先頭列のヘッダーセル（左上） */
-        .p-read-status-table th:first-child { 
-            z-index: 4;
+        .p-read-status-table thead th:first-child { 
+            z-index: 15 !important;
             background: #2c3e50 !important;
+            position: -webkit-sticky;
             position: sticky;
-            left: 0;
-            top: 0;
+            left: 0 !important;
+            top: 0 !important;
         }
         
         /* 先頭列のデータセル背景（シマシマ維持） */
@@ -409,11 +413,12 @@ function display_read_status_overview() {
         /* スクロールコンテナ */
         .p-read-status-scroll-container { 
             overflow: auto; 
-            max-height: 600px;
+            max-height: 900px;
             width: 100%;
             border-radius: 8px;
             background: #fff;
             position: relative;
+            display: block;
         }
     </style>';
 
@@ -444,6 +449,7 @@ function display_read_status_overview() {
         // 表の開始
         echo '<div class="p-read-status-scroll-container">';
         echo '<table class="p-read-status-table">';
+        echo '<thead>';
 
         // ヘッダーとして全ユーザー名の出力
         echo '<tr class="p-read-status-header"><th>投稿タイトル / ユーザー名</th>';
@@ -451,6 +457,8 @@ function display_read_status_overview() {
             echo '<th class="p-read-status-user-name">' . $user->display_name . '</th>';
         }
         echo '</tr>';
+        echo '</thead>';
+        echo '<tbody>';
 
         // 各投稿ごとに行を追加
         foreach ($posts as $post) {
@@ -478,6 +486,7 @@ function display_read_status_overview() {
             }
             echo '</tr>';
         }
+        echo '</tbody>';
 
         // 表の終了
         echo '</table>';

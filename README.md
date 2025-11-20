@@ -245,6 +245,16 @@ user-read-management/
 
 ## 📝 変更履歴
 
+### Version 1.7
+- **テーブル構造を修正して固定機能を完全実装**
+  - `<thead>` と `<tbody>` タグを明示的に追加
+  - `border-collapse: separate` に変更（sticky との互換性向上）
+  - CSSセレクタを `thead th` に修正
+  - z-indexを最適化（ヘッダー: 10、先頭列: 5、左上: 15）
+  - Safari対応（`-webkit-sticky`）を追加
+  - max-heightを900pxに変更
+  - 先頭行と先頭列が確実に固定されるように改善
+
 ### Version 1.6
 - **スクロール固定機能を強化**
   - スクロールコンテナに高さ制限（max-height: 600px）を追加

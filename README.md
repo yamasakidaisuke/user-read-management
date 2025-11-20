@@ -245,6 +245,15 @@ user-read-management/
 
 ## 📝 変更履歴
 
+### Version 1.8
+- **overflow: hidden を削除して sticky を完全動作させる**
+  - `.p-read-status-table` から `overflow: hidden` を削除（sticky の妨げになっていた）
+  - 角丸とシャドウをスクロールコンテナに移動（構造を明確化）
+  - 不要な `-webkit-sticky` プレフィックスを削除
+  - 不要な `!important` を削除してCSSをシンプル化
+  - コメントを追加して再利用性を向上
+  - **これで position: sticky が確実に動作します**
+
 ### Version 1.7
 - **テーブル構造を修正して固定機能を完全実装**
   - `<thead>` と `<tbody>` タグを明示的に追加

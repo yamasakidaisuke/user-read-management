@@ -2,7 +2,7 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.7
+ * Version: 1.8
  * Author: Daisuke Yamasaki
  */
 
@@ -292,20 +292,16 @@ function display_read_status_overview() {
         .p-read-status-table { 
             border-collapse: separate;
             border-spacing: 0;
-            margin-bottom: 20px; 
+            margin-bottom: 0;
             width: 100%;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-            border-radius: 8px;
-            overflow: hidden;
         }
         
         /* ヘッダー行のスタイル */
         .p-read-status-table thead th { 
-            position: -webkit-sticky;
             position: sticky; 
             top: 0; 
             z-index: 10; 
-            background: #2c3e50 !important;
+            background: #2c3e50;
             color: #fff;
             padding: 15px 12px;
             text-align: center;
@@ -347,21 +343,19 @@ function display_read_status_overview() {
         /* 先頭列を固定 */
         .p-read-status-table tbody td:first-child,
         .p-read-status-table thead th:first-child { 
-            position: -webkit-sticky;
             position: sticky; 
             left: 0; 
             z-index: 5; 
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
         
-        /* 先頭列のヘッダーセル（左上） */
+        /* 先頭列のヘッダーセル（左上）- 最も高い優先度 */
         .p-read-status-table thead th:first-child { 
-            z-index: 15 !important;
-            background: #2c3e50 !important;
-            position: -webkit-sticky;
+            z-index: 15;
+            background: #2c3e50;
             position: sticky;
-            left: 0 !important;
-            top: 0 !important;
+            left: 0;
+            top: 0;
         }
         
         /* 先頭列のデータセル背景（シマシマ維持） */
@@ -419,6 +413,7 @@ function display_read_status_overview() {
             background: #fff;
             position: relative;
             display: block;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
         }
     </style>';
 

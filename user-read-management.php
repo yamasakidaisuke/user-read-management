@@ -2,7 +2,7 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.5
+ * Version: 1.6
  * Author: Daisuke Yamasaki
  */
 
@@ -325,7 +325,6 @@ function display_read_status_overview() {
         .p-read-status-table td:first-child { 
             text-align: left; 
             font-weight: 500;
-            background: #fff;
         }
         
         /* シマシマ背景（奇数行） */
@@ -352,9 +351,27 @@ function display_read_status_overview() {
             box-shadow: 2px 0 5px rgba(0,0,0,0.05);
         }
         
+        /* 先頭列のヘッダーセル（左上） */
         .p-read-status-table th:first-child { 
             z-index: 4;
-            background: #2c3e50;
+            background: #2c3e50 !important;
+            position: sticky;
+            left: 0;
+            top: 0;
+        }
+        
+        /* 先頭列のデータセル背景（シマシマ維持） */
+        .p-read-status-table tbody tr:nth-child(odd) td:first-child { 
+            background-color: #f8f9fa !important; 
+        }
+        
+        .p-read-status-table tbody tr:nth-child(even) td:first-child { 
+            background-color: #ffffff !important; 
+        }
+        
+        /* 先頭列のホバー時の背景 */
+        .p-read-status-table tbody tr:hover td:first-child { 
+            background-color: #e3f2fd !important; 
         }
         
         /* 編集可能なセル */
@@ -392,8 +409,11 @@ function display_read_status_overview() {
         /* スクロールコンテナ */
         .p-read-status-scroll-container { 
             overflow: auto; 
+            max-height: 600px;
+            width: 100%;
             border-radius: 8px;
             background: #fff;
+            position: relative;
         }
     </style>';
 

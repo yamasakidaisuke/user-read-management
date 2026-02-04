@@ -2,7 +2,7 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.8
+ * Version: 1.9
  * Author: Daisuke Yamasaki
  */
 
@@ -46,7 +46,7 @@ function urm_remove_custom_roles() {
 register_deactivation_hook( __FILE__, 'urm_remove_custom_roles' );
 
 // チェックボックスを表示したい投稿カテゴリーと、チェックボックスを非表示にしたいユーザーのIDを配列として定義
-$show_checkbox_categories = array('manuals', 'medical-information'); // ここにチェックボックスを表示したいカテゴリースラッグを設定
+$show_checkbox_categories = array('manuals', 'medical-information', 'essential_readings'); // ここにチェックボックスを表示したいカテゴリースラッグを設定
 $hide_checkbox_users = array(1, 10); // ここにチェックボックスを非表示にしたいユーザーのIDを設定
 
 // 'manuals' の子カテゴリーを取得して配列に追加する関数
@@ -163,7 +163,8 @@ function export_read_status_csv() {
   // カテゴリーごとの設定
   $categories = array(
       'manuals' => '診療マニュアル',
-      'medical-information' => '医療情報'
+      'medical-information' => '医療情報',
+      'essential_readings' => '必読資料'
   );
 
   foreach ( $categories as $category_slug => $category_name ) {
@@ -278,15 +279,14 @@ function display_read_status_overview() {
             margin-bottom: 40px; 
         }
         
-        .p-read-status-section-title { 
-            font-size: 24px; 
-            font-weight: bold; 
-            margin-bottom: 15px; 
-            padding: 15px 20px; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .p-read-status-section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 10px 16px;
+            background: #2c3e50;
             color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-bottom: 3px solid #1a252f;
         }
         
         .p-read-status-table { 
@@ -345,8 +345,8 @@ function display_read_status_overview() {
         .p-read-status-table thead th:first-child { 
             position: sticky; 
             left: 0; 
-            z-index: 5; 
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 5;
+            border-right: 2px solid #dee2e6;
         }
         
         /* 先頭列のヘッダーセル（左上）- 最も高い優先度 */
@@ -378,10 +378,8 @@ function display_read_status_overview() {
         }
         
         /* 編集可能なセルのホバー効果 */
-        .p-read-status-table .p-read-status-cell:hover { 
+        .p-read-status-table .p-read-status-cell:hover {
             background-color: #fff3cd !important;
-            transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             font-weight: bold;
         }
         
@@ -405,22 +403,22 @@ function display_read_status_overview() {
         }
         
         /* スクロールコンテナ */
-        .p-read-status-scroll-container { 
-            overflow: auto; 
+        .p-read-status-scroll-container {
+            overflow: auto;
             max-height: 900px;
             width: 100%;
-            border-radius: 8px;
             background: #fff;
             position: relative;
             display: block;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            border: 1px solid #dee2e6;
         }
     </style>';
 
     // カテゴリーごとの表示設定
     $categories = array(
         'manuals' => '診療マニュアル',
-        'medical-information' => '医療情報'
+        'medical-information' => '医療情報',
+        'essential_readings' => '必読資料'
     );
 
     foreach ($categories as $category_slug => $category_name) {

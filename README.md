@@ -11,7 +11,7 @@ User Read Managementは、ユーザーが各投稿を読んだかどうかを追
 ## ✨ 主な機能
 
 ### 1. 投稿ページでの読了チェックボックス
-- 特定カテゴリー（`manuals`, `medical-information`）の投稿にチェックボックスを自動表示
+- 特定カテゴリー（`manuals`, `medical-information`, `essential_readings`）の投稿にチェックボックスを自動表示
 - ログインユーザーが「読みました」をチェック可能
 - AJAXによるリアルタイム保存
 
@@ -19,10 +19,11 @@ User Read Managementは、ユーザーが各投稿を読んだかどうかを追
 - **ユーザーロール別表示**: 
   - デフォルトで**獣医師ロールのユーザーのみ**を表示
   - カスタマイズで看護師、管理室、病院も表示可能
-- **カテゴリー別表示**: 
+- **カテゴリー別表示**:
   - 「診療マニュアル」（manuals）
   - 「医療情報」（medical-information）
-  - 2つの独立した表で見やすく整理
+  - 「必読資料」（essential_readings）
+  - 3つの独立した表で見やすく整理
 - **編集権限**: 
   - 自分自身の状態: 誰でも変更可能
   - 他ユーザーの状態: 管理者のみ変更可能
@@ -80,12 +81,13 @@ git clone https://github.com/yamasakidaisuke/user-read-management.git
 
 1. **診療マニュアル** セクション
 2. **医療情報** セクション
+3. **必読資料** セクション
 
 各セクションに全ユーザー×投稿のマトリックス表が表示されます。
 
 ### 投稿ページでの表示
 
-特定カテゴリー（`manuals`, `medical-information`およびその子カテゴリー）に属する投稿を表示すると、投稿コンテンツの下に「読みました」チェックボックスが自動的に表示されます。
+特定カテゴリー（`manuals`, `medical-information`, `essential_readings`およびその子カテゴリー）に属する投稿を表示すると、投稿コンテンツの下に「読みました」チェックボックスが自動的に表示されます。
 
 ### CSVエクスポート（管理者のみ）
 
@@ -158,7 +160,7 @@ $users = get_users(array(
 
 ### 対象カテゴリーの設定
 ```php
-$show_checkbox_categories = array('manuals', 'medical-information');
+$show_checkbox_categories = array('manuals', 'medical-information', 'essential_readings');
 ```
 
 ### チェックボックスを非表示にするユーザーID
@@ -244,6 +246,19 @@ user-read-management/
 3. サーバーのエラーログを確認
 
 ## 📝 変更履歴
+
+### Version 1.9
+- **「必読資料」カテゴリーを追加**
+  - 新カテゴリー `essential_readings`（必読資料）を対象カテゴリーに追加
+  - 投稿ページでの読了チェックボックス表示
+  - 読了状態一覧表に「必読資料」セクションを追加（医療情報の下）
+  - CSVエクスポートに「必読資料」カテゴリーを追加
+- **デザインをプロフェッショナルに改善**
+  - セクション見出しのグラデーション背景をフラットな単色に変更
+  - 角丸（border-radius）を全て除去
+  - セルホバー時のスケールアニメーション（transform: scale）を除去
+  - 装飾的なbox-shadowを除去し、シンプルなborderに変更
+  - 固定列の影をborder-rightに変更
 
 ### Version 1.8
 - **overflow: hidden を削除して sticky を完全動作させる**

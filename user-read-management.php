@@ -134,10 +134,23 @@ function update_read_status() {
 }
 add_action( 'wp_ajax_update_read_status', 'update_read_status' );
 
-// CSVエクスポート機能（管理者のみ）
+/**
+ * CSVエクスポートが可能か（管理者、または管理室ロール）
+ */
+function urm_user_can_export_read_status_csv() {
+    if ( current_user_can( 'administrator' ) ) {
+        return true;
+    }
+    $user = wp_get_current_user();
+    if ( ! $user || ! $user->ID ) {
+        return false;
+    }
+    return in_array( 'admin_office', (array) $user->roles, true );
+}
+
+// CSVエクスポート機能（管理者・管理室）
 function export_read_status_csv() {
-  // 管理者チェック
-  if ( ! current_user_can( 'administrator' ) ) {
+  if ( ! urm_user_can_export_read_status_csv() ) {
       wp_send_json_error( array( 'message' => '権限がありません' ) );
       wp_die();
   }
@@ -487,8 +500,8 @@ function display_read_status_overview() {
         echo '</div>'; // セクション終了
     }
 
-    // 管理者のみCSVエクスポートボタンを表示
-    if (current_user_can('administrator')) {
+    // 管理者・管理室のみCSVエクスポートボタンを表示
+    if (urm_user_can_export_read_status_csv()) {
         echo '<div style="margin-top: 20px;">';
         echo '<button id="csv-export-button" class="button button-primary" style="padding: 10px 20px; cursor: pointer;">CSVエクスポート</button>';
         echo '</div>';

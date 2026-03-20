@@ -67,7 +67,7 @@ jQuery(document).ready(function($) {
       }
   });
 
-  // CSVエクスポート機能（管理者のみ）
+  // CSVエクスポート（管理者・管理室。実権限はサーバー側で検証）
   $(document).on('click', '#csv-export-button', function() {
       var button = $(this);
       button.prop('disabled', true).text('エクスポート中...');

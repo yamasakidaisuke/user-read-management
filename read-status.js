@@ -72,12 +72,16 @@ jQuery(document).ready(function($) {
       var button = $(this);
       button.prop('disabled', true).text('エクスポート中...');
 
+      var urlParams = new URLSearchParams(window.location.search);
+      var currentSort = urlParams.get('urm_sort') || 'store_number';
+
       $.ajax({
           url: readStatus.ajaxUrl,
           type: 'post',
           data: {
               action: 'export_read_status_csv',
-              security: readStatus.ajaxNonce
+              security: readStatus.ajaxNonce,
+              urm_sort: currentSort
           },
           success: function(response) {
               if (response.success) {

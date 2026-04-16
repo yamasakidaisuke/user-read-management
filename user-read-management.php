@@ -2,7 +2,7 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 1.9
+ * Version: 2.0
  * Author: Daisuke Yamasaki
  */
 
@@ -159,9 +159,11 @@ function export_read_status_csv() {
 
   // ユーザーの取得（獣医師のみ）
   $users = get_users( array(
-      'role' => 'veterinarian', // 獣医師ロールのみ取得
+      'role' => 'veterinarian',
       'fields' => array( 'ID', 'display_name' )
   ) );
+  $urm_sort = isset($_POST['urm_sort']) ? sanitize_text_field($_POST['urm_sort']) : 'store_number';
+  $users = urm_sort_users($users, $urm_sort);
 
   // CSVデータの生成
   $csv_data = array();
@@ -175,9 +177,9 @@ function export_read_status_csv() {
 
   // カテゴリーごとの設定
   $categories = array(
+      'essential_readings' => '必読資料',
       'manuals' => '診療マニュアル',
-      'medical-information' => '医療情報',
-      'essential_readings' => '必読資料'
+      'medical-information' => '医療情報'
   );
 
   foreach ( $categories as $category_slug => $category_name ) {
@@ -267,6 +269,69 @@ add_action( 'wp_enqueue_scripts', 'enqueue_read_status_script' );
 // });
 
 
+// 店舗番号フィールド（ユーザープロフィール）
+function urm_show_store_number_field($user) {
+    if (!current_user_can('administrator')) {
+        return;
+    }
+    $store_number = get_user_meta($user->ID, 'urm_store_number', true);
+    ?>
+    <h3>読了管理 設定</h3>
+    <table class="form-table">
+        <tr>
+            <th><label for="urm_store_number">店舗番号</label></th>
+            <td>
+                <input type="number" name="urm_store_number" id="urm_store_number"
+                       value="<?php echo esc_attr($store_number); ?>"
+                       class="regular-text"
+                       min="0" step="1" />
+                <p class="description">読了管理表でのユーザー並び順に使用されます。小さい番号が左に表示されます。</p>
+            </td>
+        </tr>
+    </table>
+    <?php
+}
+add_action('show_user_profile', 'urm_show_store_number_field');
+add_action('edit_user_profile', 'urm_show_store_number_field');
+
+function urm_save_store_number_field($user_id) {
+    if (!current_user_can('administrator')) {
+        return;
+    }
+    if (isset($_POST['urm_store_number'])) {
+        update_user_meta($user_id, 'urm_store_number', intval($_POST['urm_store_number']));
+    }
+}
+add_action('personal_options_update', 'urm_save_store_number_field');
+add_action('edit_user_profile_update', 'urm_save_store_number_field');
+
+function urm_sort_users($users, $sort_by = 'store_number') {
+    switch ($sort_by) {
+        case 'display_name':
+            usort($users, function($a, $b) {
+                return strcmp($a->display_name, $b->display_name);
+            });
+            break;
+        case 'registered':
+            $users = get_users(array(
+                'role' => 'veterinarian',
+                'fields' => array('ID', 'display_name'),
+                'orderby' => 'registered',
+                'order' => 'ASC',
+            ));
+            break;
+        case 'store_number':
+        default:
+            usort($users, function($a, $b) {
+                $a_num = intval(get_user_meta($a->ID, 'urm_store_number', true));
+                $b_num = intval(get_user_meta($b->ID, 'urm_store_number', true));
+                return $a_num - $b_num;
+            });
+            break;
+    }
+    return $users;
+}
+
 // 除外したいユーザーと記事のIDを配列として定義
 $exclude_user_ids = array(1,10); // ここに除外したいユーザーのIDを設定
 $exclude_post_ids = array(0); // ここに除外したい記事のIDを設定
@@ -280,11 +345,15 @@ function display_read_status_overview() {
 
     $current_user_id = get_current_user_id(); // 現在のユーザーIDを取得
 
+    // ソート順の取得
+    $urm_sort = isset($_GET['urm_sort']) ? sanitize_text_field($_GET['urm_sort']) : 'store_number';
+
     // ユーザーの取得（獣医師のみ）
     $users = get_users(array(
-        'role' => 'veterinarian', // 獣医師ロールのみ取得
+        'role' => 'veterinarian',
         'fields' => array('ID', 'display_name')
     ));
+    $users = urm_sort_users($users, $urm_sort);
 
     // 表の開始（スタイルを先に出力）
     echo '<style>
@@ -425,13 +494,60 @@ function display_read_status_overview() {
             display: block;
             border: 1px solid #dee2e6;
         }
+
+        /* 読了率表示 */
+        .p-read-status-user-percentage {
+            font-size: 12px;
+            font-weight: 400;
+            opacity: 0.85;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* ソート選択UI */
+        .p-read-status-sort-controls {
+            margin-bottom: 20px;
+            padding: 10px 0;
+        }
+
+        .p-read-status-sort-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .p-read-status-sort-select {
+            font-size: 14px;
+            padding: 6px 10px;
+            border: 1px solid #e0e0e0;
+            background: #ffffff;
+            cursor: pointer;
+        }
     </style>';
+
+    // ソート選択UI
+    $current_url = remove_query_arg('urm_sort');
+    $sort_options = array(
+        'store_number'  => '店舗番号順',
+        'display_name'  => '表示名順',
+        'registered'    => '登録順',
+    );
+    echo '<div class="p-read-status-sort-controls">';
+    echo '<label class="p-read-status-sort-label" for="urm-sort-select">並び順：</label>';
+    echo '<select class="p-read-status-sort-select" id="urm-sort-select" onchange="location.href=this.value;">';
+    foreach ($sort_options as $sort_value => $sort_label) {
+        $url = add_query_arg('urm_sort', $sort_value, $current_url);
+        $selected = ($urm_sort === $sort_value) ? ' selected' : '';
+        echo '<option value="' . esc_url($url) . '"' . $selected . '>' . esc_html($sort_label) . '</option>';
+    }
+    echo '</select>';
+    echo '</div>';
 
     // カテゴリーごとの表示設定
     $categories = array(
+        'essential_readings' => '必読資料',
         'manuals' => '診療マニュアル',
-        'medical-information' => '医療情報',
-        'essential_readings' => '必読資料'
+        'medical-information' => '医療情報'
     );
 
     foreach ($categories as $category_slug => $category_name) {
@@ -443,9 +559,28 @@ function display_read_status_overview() {
         );
         $posts = get_posts($args);
 
+        // 除外投稿をフィルタリング
+        $filtered_posts = array_filter($posts, function($post) use ($exclude_post_ids) {
+            return !in_array($post->ID, $exclude_post_ids);
+        });
+        $filtered_posts = array_values($filtered_posts);
+        $total_posts = count($filtered_posts);
+
         // 投稿がない場合はスキップ
-        if (empty($posts)) {
+        if (empty($filtered_posts)) {
             continue;
+        }
+
+        // ユーザーごとの読了数をプリ計算
+        $user_read_counts = array();
+        foreach ($users as $user) {
+            $read_count = 0;
+            foreach ($filtered_posts as $post) {
+                if (get_user_meta($user->ID, 'read_status_' . $post->ID, true) === 'read') {
+                    $read_count++;
+                }
+            }
+            $user_read_counts[$user->ID] = $read_count;
         }
 
         // セクション見出し
@@ -457,22 +592,22 @@ function display_read_status_overview() {
         echo '<table class="p-read-status-table">';
         echo '<thead>';
 
-        // ヘッダーとして全ユーザー名の出力
+        // ヘッダーとして全ユーザー名＋読了率の出力
         echo '<tr class="p-read-status-header"><th>投稿タイトル / ユーザー名</th>';
         foreach ($users as $user) {
-            echo '<th class="p-read-status-user-name">' . $user->display_name . '</th>';
+            $read_count = $user_read_counts[$user->ID];
+            $percentage = ($total_posts > 0) ? round(($read_count / $total_posts) * 100) : 0;
+            echo '<th class="p-read-status-user-name">'
+                . esc_html($user->display_name)
+                . '<span class="p-read-status-user-percentage">(' . $read_count . '/' . $total_posts . ' ' . $percentage . '%)</span>'
+                . '</th>';
         }
         echo '</tr>';
         echo '</thead>';
         echo '<tbody>';
 
         // 各投稿ごとに行を追加
-        foreach ($posts as $post) {
-            // 除外する記事のスキップ
-            if (in_array($post->ID, $exclude_post_ids)) {
-                continue;
-            }
-
+        foreach ($filtered_posts as $post) {
             // 投稿タイトルとリンクの出力
             $post_title = get_the_title($post->ID);
             $post_link = get_permalink($post->ID);
@@ -483,11 +618,11 @@ function display_read_status_overview() {
             foreach ($users as $user) {
                 $status = get_user_meta($user->ID, 'read_status_' . $post->ID, true);
                 $display_text = ($status == 'read') ? '済' : '未';
-                
+
                 // 管理者または自分自身のセルの場合はクリック可能に、それ以外は表示のみ
                 $is_editable = (current_user_can('administrator') || $user->ID == $current_user_id);
                 $cell_class = $is_editable ? 'p-read-status-cell' : 'p-read-status-cell-readonly';
-                
+
                 echo '<td class="' . $cell_class . '" data-user-id="' . $user->ID . '" data-post-id="' . $post->ID . '" data-status="' . $status . '">' . $display_text . '</td>';
             }
             echo '</tr>';

@@ -1,0 +1,21 @@
+# IDE / Editor
+.cursorrules
+.specstory/
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# WordPress debug
+debug.log
+error_log
+
+# Environment / secrets
+.env
+*.sql

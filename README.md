@@ -11,7 +11,7 @@ User Read Managementは、ユーザーが各投稿を読んだかどうかを追
 ## ✨ 主な機能
 
 ### 1. 投稿ページでの読了チェックボックス
-- 特定カテゴリー（`manuals`, `medical-information`, `essential_readings`）の投稿にチェックボックスを自動表示
+- 特定カテゴリー（`manuals`, `medical-information`, `essential_readings`, `resident-study-sessions`, `dr_aoki_archive`）の投稿にチェックボックスを自動表示
 - ログインユーザーが「読みました」をチェック可能
 - AJAXによるリアルタイム保存
 
@@ -20,10 +20,12 @@ User Read Managementは、ユーザーが各投稿を読んだかどうかを追
   - デフォルトで**獣医師ロールのユーザーのみ**を表示
   - カスタマイズで看護師、管理室、病院も表示可能
 - **カテゴリー別表示**:
+  - 「必読資料」（essential_readings）
   - 「診療マニュアル」（manuals）
   - 「医療情報」（medical-information）
-  - 「必読資料」（essential_readings）
-  - 3つの独立した表で見やすく整理
+  - 「研修医勉強会資料」（resident-study-sessions）
+  - 「青木先生による眼科講義」（dr_aoki_archive）
+  - カテゴリーごとの独立した表で見やすく整理
 - **編集権限**: 
   - 自分自身の状態: 誰でも変更可能
   - 他ユーザーの状態: 管理者のみ変更可能
@@ -79,15 +81,17 @@ git clone https://github.com/yamasakidaisuke/user-read-management.git
 
 これにより、カテゴリーごとに分かれた読了状態マトリックス表が表示されます：
 
-1. **診療マニュアル** セクション
-2. **医療情報** セクション
-3. **必読資料** セクション
+1. **必読資料** セクション
+2. **診療マニュアル** セクション
+3. **医療情報** セクション
+4. **研修医勉強会資料** セクション
+5. **青木先生による眼科講義** セクション
 
 各セクションに全ユーザー×投稿のマトリックス表が表示されます。
 
 ### 投稿ページでの表示
 
-特定カテゴリー（`manuals`, `medical-information`, `essential_readings`およびその子カテゴリー）に属する投稿を表示すると、投稿コンテンツの下に「読みました」チェックボックスが自動的に表示されます。
+特定カテゴリー（`manuals`, `medical-information`, `essential_readings`, `resident-study-sessions`, `dr_aoki_archive` および `manuals` の子カテゴリー）に属する投稿を表示すると、投稿コンテンツの下に「読みました」チェックボックスが自動的に表示されます。
 
 ### CSVエクスポート（管理者・管理室）
 
@@ -160,7 +164,7 @@ $users = get_users(array(
 
 ### 対象カテゴリーの設定
 ```php
-$show_checkbox_categories = array('manuals', 'medical-information', 'essential_readings');
+$show_checkbox_categories = array('manuals', 'medical-information', 'essential_readings', 'resident-study-sessions', 'dr_aoki_archive');
 ```
 
 ### チェックボックスを非表示にするユーザーID
@@ -246,6 +250,14 @@ user-read-management/
 3. サーバーのエラーログを確認
 
 ## 📝 変更履歴
+
+### Version 2.1
+- **「研修医勉強会資料」「青木先生による眼科講義」カテゴリーを追加**
+  - 新カテゴリー `resident-study-sessions`（研修医勉強会資料）・`dr_aoki_archive`（青木先生による眼科講義）を対象カテゴリーに追加
+  - 投稿ページでの読了チェックボックス表示
+  - 読了状態一覧表に2セクションを最下部（医療情報の下）に追加
+  - CSVエクスポートに2カテゴリーを追加
+  - いずれも院内資料（hospital-information）の子で投稿は直下に入るため、子カテゴリー自動取得は不要
 
 ### Version 1.9
 - **「必読資料」カテゴリーを追加**

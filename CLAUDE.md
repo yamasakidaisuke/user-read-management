@@ -13,7 +13,10 @@ WordPress プラグイン（v2.0）。投稿の既読管理を行う。UI は日
 - `urm_create_custom_roles()` / `urm_remove_custom_roles()`
 
 ## 対象カテゴリ
-`manuals`（子カテゴリ自動取得）, `medical-information`, `essential_readings`
+`manuals`（子カテゴリ自動取得）, `medical-information`, `essential_readings`, `resident-study-sessions`（研修医勉強会資料）, `dr_aoki_archive`（青木先生による眼科講義）
+- `resident-study-sessions` / `dr_aoki_archive` は院内資料（hospital-information）の子で投稿は直下に入るため、`manuals` のような子カテゴリ自動取得（`add_child_categories_to_array()`）は不要。スラッグを直接追加するだけでよい。
+  - ⚠️ 同名「研修医勉強会資料」のスラッグ `resident-study-sessions-in-manuals`（manuals の子・投稿0件）と取り違えないこと。本件は `resident-study-sessions` を使う。
+- 表示・CSV の並び順: 必読資料 → 診療マニュアル → 医療情報 → 研修医勉強会資料 → 青木先生による眼科講義
 - 設定配列: `$show_checkbox_categories`, `$hide_checkbox_users`, `$exclude_user_ids`, `$exclude_post_ids`
 
 ## 投稿ページのチェックボックス

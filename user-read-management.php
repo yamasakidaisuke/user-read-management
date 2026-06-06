@@ -2,7 +2,7 @@
 /**
  * Plugin Name: User Read Management
  * Description: A plugin to manage the read status for each user
- * Version: 2.0
+ * Version: 2.1
  * Author: Daisuke Yamasaki
  */
 
@@ -46,7 +46,7 @@ function urm_remove_custom_roles() {
 register_deactivation_hook( __FILE__, 'urm_remove_custom_roles' );
 
 // チェックボックスを表示したい投稿カテゴリーと、チェックボックスを非表示にしたいユーザーのIDを配列として定義
-$show_checkbox_categories = array('manuals', 'medical-information', 'essential_readings'); // ここにチェックボックスを表示したいカテゴリースラッグを設定
+$show_checkbox_categories = array('manuals', 'medical-information', 'essential_readings', 'resident-study-sessions', 'dr_aoki_archive'); // ここにチェックボックスを表示したいカテゴリースラッグを設定
 $hide_checkbox_users = array(1, 10); // ここにチェックボックスを非表示にしたいユーザーのIDを設定
 
 // 'manuals' の子カテゴリーを取得して配列に追加する関数
@@ -179,7 +179,9 @@ function export_read_status_csv() {
   $categories = array(
       'essential_readings' => '必読資料',
       'manuals' => '診療マニュアル',
-      'medical-information' => '医療情報'
+      'medical-information' => '医療情報',
+      'resident-study-sessions' => '研修医勉強会資料',
+      'dr_aoki_archive' => '青木先生による眼科講義'
   );
 
   foreach ( $categories as $category_slug => $category_name ) {
@@ -547,7 +549,9 @@ function display_read_status_overview() {
     $categories = array(
         'essential_readings' => '必読資料',
         'manuals' => '診療マニュアル',
-        'medical-information' => '医療情報'
+        'medical-information' => '医療情報',
+        'resident-study-sessions' => '研修医勉強会資料',
+        'dr_aoki_archive' => '青木先生による眼科講義'
     );
 
     foreach ($categories as $category_slug => $category_name) {
